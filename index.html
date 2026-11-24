@@ -92,6 +92,11 @@ label{display:block;font-weight:600;margin:10px 0 4px}
   <input id="fTerm" placeholder="z. B. chmod">
   <label for="fCat">Kategorie</label>
   <select id="fCat"></select>
+  <!-- Neue Kategorie direkt hier anlegen: eintippen und „Anlegen“ klicken (oder einfach speichern) -->
+  <div class="row">
+    <input id="fNewCat" placeholder="Oder neue Kategorie eingeben …" style="flex:2 1 160px">
+    <button id="btnFormCat">＋ Anlegen</button>
+  </div>
   <label for="fExpl">Erklärung</label>
   <textarea id="fExpl" style="font-family:inherit"></textarea>
   <label for="fEx">Beispiel (z. B. ein Befehl)</label>
@@ -126,6 +131,7 @@ label{display:block;font-weight:600;margin:10px 0 4px}
   <div id="ioFileRow"><label for="ioFile">… oder Datei wählen (.json)</label><input id="ioFile" type="file" accept=".json,application/json"></div>
   <div class="row">
     <button class="primary" id="ioAction"></button>
+    <button id="ioDownload">Download</button>
     <button id="ioClose">Schließen</button>
   </div>
   <p class="muted" id="ioMsg"></p>
@@ -243,7 +249,7 @@ function openForm(id) {
   $("formTitle").textContent = id ? "Begriff bearbeiten" : "Neuer Begriff";
   $("fTerm").value = it.term; $("fCat").value = it.cat; $("fExpl").value = it.expl; $("fEx").value = it.ex;
   $("fLinks").value = it.links.map(l => (l.title ? l.title + " | " : "") + l.url).join("\n");
-  $("fPhotos").value = "";
+  $("fPhotos").value = ""; $("fNewCat").value = "";
   tmpPhotos = [...it.photos];
   drawThumbs();
   $("dlgForm").classList.add("open");
@@ -284,6 +290,7 @@ function parseLinks(text) {
 function saveForm() {
   const term = $("fTerm").value.trim();
   if (!term) { alert("Bitte einen Begriff eingeben."); return; }
+  $("btnFormCat").click(); // falls eine neue Kategorie getippt, aber nicht „Anlegen“ geklickt wurde
   const data = { term, cat: $("fCat").value, expl: $("fExpl").value.trim(), ex: $("fEx").value.trim(),
                  links: parseLinks($("fLinks").value), photos: tmpPhotos };
   if (editId) Object.assign(db.items.find(x => x.id === editId), data);   // Update
@@ -314,12 +321,13 @@ function openIO(mode) {
   const exp = mode === "export";
   $("ioTitle").textContent = exp ? "Export" : "Import";
   $("ioHelp").textContent = exp
-    ? "Kopiere den Text und speichere ihn in einer Datei (z. B. linux-lexikon.json). Der Download-Button klappt nicht in jedem Browser."
+    ? "Kopiere den Text oder lade ihn als Datei herunter (linux-lexikon.json). In manchen Vorschau-Fenstern klappt der Download nicht, dann nimm „Kopieren“."
     : "Füge hier den exportierten Text ein oder wähle eine .json-Datei. Neue Begriffe werden ergänzt, vorhandene mit gleicher ID überschrieben.";
   $("ioText").value = exp ? JSON.stringify(db, null, 2) : "";
   $("ioAction").textContent = exp ? "Kopieren" : "Importieren";
   $("ioAction").dataset.mode = mode;
   $("ioFileRow").style.display = exp ? "none" : "block";
+  $("ioDownload").style.display = exp ? "" : "none"; // Download nur beim Export zeigen
   $("ioMsg").textContent = "";
   $("dlgIO").classList.add("open");
 }
@@ -328,12 +336,6 @@ function doIO() {
   if ($("ioAction").dataset.mode === "export") {
     $("ioText").select();
     try { navigator.clipboard.writeText($("ioText").value); } catch (e) { document.execCommand("copy"); }
-    // Zusätzlich ein Download-Versuch
-    try {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(new Blob([$("ioText").value], { type: "application/json" }));
-      a.download = "linux-lexikon.json"; a.click();
-    } catch (e) {}
     $("ioMsg").textContent = "Kopiert.";
     return;
   }
@@ -364,6 +366,26 @@ $("btnCatsClose").onclick = () => $("dlgCats").classList.remove("open");
 $("btnExport").onclick = () => openIO("export");
 $("btnImport").onclick = () => openIO("import");
 $("ioAction").onclick = doIO;
+
+// Download-Button: erzeugt aus dem Text eine Datei und startet den Download
+$("ioDownload").onclick = () => {
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([$("ioText").value], { type: "application/json" }));
+    a.download = "linux-lexikon.json"; a.click();
+    $("ioMsg").textContent = "Download gestartet.";
+  } catch (e) { $("ioMsg").textContent = "Download nicht möglich – bitte „Kopieren“ nutzen."; }
+};
+
+// Neue Kategorie direkt im Formular anlegen und gleich auswählen
+$("btnFormCat").onclick = () => {
+  const c = $("fNewCat").value.trim();
+  if (!c) return;
+  if (!db.cats.includes(c)) { db.cats.push(c); save(); }
+  fillCats();            // Auswahllisten neu aufbauen
+  $("fCat").value = c;   // neue Kategorie auswählen
+  $("fNewCat").value = "";
+};
 $("ioClose").onclick = () => $("dlgIO").classList.remove("open");
 $("dlgPic").onclick = () => $("dlgPic").classList.remove("open");
 
@@ -414,3 +436,4 @@ render();    // Karten zeichnen
 </script>
 </body>
 </html>
+
