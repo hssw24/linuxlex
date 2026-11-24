@@ -208,7 +208,7 @@ function render() {
 
   // filter() behält nur Einträge, die zur Suche und Kategorie passen
   const hits = db.items
-    .filter(i => !cat || i.cat === cat)
+    .filter(i => !cat || (cat === "__none__" ? !i.cat : i.cat === cat))
     .filter(i => !q || [i.term, i.expl, i.ex, i.cat, ...i.links.map(l => l.title)].join(" ").toLowerCase().includes(q))
     .sort((a, b) => a.term.localeCompare(b.term, "de")); // alphabetisch
 
@@ -231,11 +231,16 @@ function render() {
 }
 
 // Auswahlfelder (Filter oben + Formular) mit den Kategorien füllen
+// Kategorien alphabetisch sortieren (Umlaute nach deutscher Regel)
+function sortCats() { db.cats.sort((a, b) => a.localeCompare(b, "de")); }
+
 function fillCats() {
+  sortCats();
   const opts = db.cats.map(c => `<option>${esc(c)}</option>`).join("");
   const keep = $("filterCat").value;
-  $("filterCat").innerHTML = `<option value="">Alle Kategorien</option>` + opts;
-  $("filterCat").value = db.cats.includes(keep) ? keep : "";
+  // "__none__" ist ein Sonderwert: zeigt nur Begriffe ohne Kategorie
+  $("filterCat").innerHTML = `<option value="">Alle Kategorien</option><option value="__none__">– keine –</option>` + opts;
+  $("filterCat").value = (db.cats.includes(keep) || keep === "__none__") ? keep : "";
   $("fCat").innerHTML = `<option value="">– keine –</option>` + opts;
 }
 
@@ -310,6 +315,7 @@ function del(id) {
 
 // ---------- 6. KATEGORIEN VERWALTEN ----------
 function drawCatList() {
+  sortCats();
   $("catList").innerHTML = db.cats.map((c, n) =>
     `<div class="row"><span style="flex:1;align-self:center">${esc(c)}</span>
      <button data-rencat="${n}">Umbenennen</button><button class="danger" data-delcat="${n}">Löschen</button></div>`).join("")
@@ -431,9 +437,4 @@ document.addEventListener("click", (e) => {
 
 // ---------- 9. START ----------
 load();      // Daten holen
-fillCats();  // Kategorien in die Auswahlfelder
-render();    // Karten zeichnen
-</script>
-</body>
-</html>
-
+fillCats();  // Kategorien in die Auswahl
