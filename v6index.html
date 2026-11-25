@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Linux-Lexikon</title>
+<style>
+/* ===== 1. FARBEN =====
+   Alle Farben stehen als Variablen (--name) oben. So kann man das Aussehen
+   an einer Stelle ändern. Im Dunkelmodus werden sie überschrieben. */
+:root{
+  --bg:#f6f7f9; --card:#ffffff; --text:#1d2430; --muted:#5d6a7d;
+  --line:#d9dee6; --accent:#1f6feb; --accent-text:#ffffff; --danger:#c62828; --tag:#e8f0fe;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#12161c; --card:#1b212b; --text:#e6e9ee; --muted:#9aa6b8;
+    --line:#2d3644; --accent:#5b9bff; --accent-text:#0b1220; --danger:#ff6b6b; --tag:#24304a;
+    color-scheme:dark;
+  }
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+
+/* ===== 2. LAYOUT ===== */
+.wrap{max-width:820px;margin:0 auto;padding:14px}
+h1{font-size:1.5rem;margin:6px 0 12px}
+.bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.bar > *{flex:1 1 160px}
+input,select,textarea,button{font:inherit;color:var(--text);background:var(--card);
+  border:1px solid var(--line);border-radius:8px;padding:9px 10px;width:100%}
+textarea{min-height:80px;resize:vertical;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.92rem}
+button{cursor:pointer;width:auto}
+button.primary{background:var(--accent);color:var(--accent-text);border-color:var(--accent);font-weight:600}
+button.danger{color:var(--danger);border-color:var(--danger)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.row button{flex:1 1 auto}
+
+/* ===== 3. KARTEN ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.card h2{margin:0 0 4px;font-size:1.15rem;word-break:break-word}
+.tag{display:inline-block;background:var(--tag);border-radius:99px;padding:1px 10px;font-size:.8rem;margin-bottom:6px}
+.label{font-size:.78rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-top:8px}
+pre{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px;
+  overflow-x:auto;margin:4px 0;font-size:.9rem;white-space:pre-wrap}
+.pics{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.pics img{max-width:100%;height:110px;border-radius:8px;border:1px solid var(--line);cursor:zoom-in;object-fit:cover}
+.links a{color:var(--accent);word-break:break-all}
+.muted{color:var(--muted);font-size:.9rem}
+
+/* ===== 4. DIALOGE (Formular, Kategorien, Export/Import) ===== */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);display:none;
+  align-items:flex-start;justify-content:center;overflow-y:auto;padding:16px;z-index:20}
+.overlay.open{display:flex}
+.dialog{background:var(--bg);border-radius:14px;padding:16px;width:100%;max-width:640px;margin:auto}
+.dialog h2{margin-top:0}
+label{display:block;font-weight:600;margin:10px 0 4px}
+.thumb{position:relative;display:inline-block;margin:4px 6px 0 0}
+.thumb img{height:70px;border-radius:6px;border:1px solid var(--line)}
+.thumb button{position:absolute;top:-6px;right:-6px;padding:0 7px;border-radius:99px;line-height:1.4}
+.star{border:0;background:none;padding:0 4px;font-size:1.3rem;color:var(--accent);line-height:1}
+.mini{padding:1px 8px;font-size:.75rem;margin-left:6px;text-transform:none}
+.big{font-size:1.4rem;font-weight:700;margin:10px 0;word-break:break-word}
+.chip{display:inline-block;background:var(--tag);border:0;border-radius:99px;padding:3px 12px;margin:3px 6px 3px 0;font-size:.85rem}
+#list.compact .card{padding:10px 14px;margin:6px 0}
+#list.compact .head{cursor:pointer}
+#list.compact .head h2{margin:0;font-size:1.05rem;display:inline}
+.detail[hidden]{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🐧 Linux-Lexikon v6</h1>
+
+  <!-- Werkzeugleiste: Suche, Kategorie-Filter, Buttons -->
+  <div class="bar">
+    <input id="search" type="search" placeholder="Suchen (Begriff, Erklärung, Beispiel …)">
+    <select id="filterCat"></select>
+    <!-- Ansicht: alle Begriffe, nur Favoriten oder nur noch unsichere -->
+    <select id="filterMode"><option value="">Alle Begriffe</option><option value="fav">★ Favoriten</option><option value="again">↻ Noch unsicher</option></select>
+  </div>
+  <div class="row">
+    <button class="primary" id="btnNew">＋ Neuer Begriff</button>
+    <button id="btnLearn">🎓 Lernen</button>
+    <button id="btnCats">Kategorien</button>
+    <button id="btnExport">Export</button>
+    <button id="btnImport">Import</button>
+  </div>
+  <div class="row">
+    <button id="btnCompact">☰ Kompaktansicht: aus</button>
+    <button id="btnExpand" style="display:none">Alle aufklappen</button>
+  </div>
+  <p class="muted" id="count"></p>
+
+  <!-- Hier werden die Karten per JavaScript eingefügt -->
+  <div id="list"></div>
+</div>
+
+<!-- ===== DIALOG: Begriff anlegen / bearbeiten ===== -->
+<div class="overlay" id="dlgForm"><div class="dialog">
+  <h2 id="formTitle">Neuer Begriff</h2>
+  <label for="fTerm">Begriff *</label>
+  <input id="fTerm" placeholder="z. B. chmod">
+  <label for="fCat">Kategorie</label>
+  <select id="fCat"></select>
+  <!-- Neue Kategorie direkt hier anlegen: eintippen und „Anlegen“ klicken (oder einfach speichern) -->
+  <div class="row">
+    <input id="fNewCat" placeholder="Oder neue Kategorie eingeben …" style="flex:2 1 160px">
+    <button id="btnFormCat">＋ Anlegen</button>
+  </div>
+  <label for="fExpl">Erklärung</label>
+  <textarea id="fExpl" style="font-family:inherit"></textarea>
+  <label for="fEx">Beispiel (z. B. ein Befehl)</label>
+  <textarea id="fEx" placeholder="chmod +x skript.sh"></textarea>
+  <label for="fLinks">Links (je Zeile: „Titel | https://…“ oder nur die Adresse)</label>
+  <textarea id="fLinks" style="font-family:inherit"></textarea>
+  <label for="fRelSearch">Verwandte Begriffe</label>
+  <input id="fRelSearch" type="search" placeholder="Begriffe filtern …">
+  <div id="fRel" style="max-height:160px;overflow-y:auto;border:1px solid var(--line);border-radius:8px;padding:6px;margin-top:6px"></div>
+  <label for="fPhotos">Fotos hinzufügen</label>
+  <input id="fPhotos" type="file" accept="image/*" multiple>
+  <div id="fThumbs"></div>
+  <div class="row">
+    <button class="primary" id="btnSave">Speichern</button>
+    <button id="btnCancel">Abbrechen</button>
+  </div>
+</div></div>
+
+<!-- ===== DIALOG: Kategorien verwalten ===== -->
+<div class="overlay" id="dlgCats"><div class="dialog">
+  <h2>Kategorien</h2>
+  <div class="row">
+    <input id="newCat" placeholder="Neue Kategorie">
+    <button class="primary" id="btnAddCat">Hinzufügen</button>
+  </div>
+  <div id="catList"></div>
+  <div class="row"><button id="btnCatsClose">Schließen</button></div>
+</div></div>
+
+<!-- ===== DIALOG: Export / Import ===== -->
+<div class="overlay" id="dlgIO"><div class="dialog">
+  <h2 id="ioTitle"></h2>
+  <p class="muted" id="ioHelp"></p>
+  <textarea id="ioText" style="min-height:200px"></textarea>
+  <div id="ioFileRow"><label for="ioFile">… oder Datei wählen (.json)</label><input id="ioFile" type="file" accept=".json,application/json"></div>
+  <div class="row">
+    <button class="primary" id="ioAction"></button>
+    <button id="ioDownload">Download</button>
+    <button id="ioClose">Schließen</button>
+  </div>
+  <p class="muted" id="ioMsg"></p>
+</div></div>
+
+<!-- ===== DIALOG: Lernmodus (Karteikarten) ===== -->
+<div class="overlay" id="dlgLearn"><div class="dialog">
+  <h2>🎓 Lernmodus</h2>
+  <p class="muted" id="lrProgress"></p>
+  <div class="card">
+    <div class="big" id="lrTerm"></div>
+    <div id="lrAnswer" style="display:none"></div>
+  </div>
+  <div class="row" id="lrBtnsShow"><button class="primary" id="lrShow">Antwort zeigen</button></div>
+  <div class="row" id="lrBtnsRate" style="display:none"><button class="primary" id="lrKnown">✓ Gewusst</button><button id="lrAgain">↻ Nochmal</button></div>
+  <div class="row"><button id="lrClose">Beenden</button></div>
+</div></div>
+
+<!-- Vollbild-Ansicht für Fotos -->
+<div class="overlay" id="dlgPic" style="align-items:center"><img id="bigPic" style="max-width:100%;max-height:90vh;border-radius:8px"></div>
+
+<script>
+/* =====================================================================
+   LINUX-LEXIKON – Erklärung für Anfänger
+   ---------------------------------------------------------------------
+   Ablauf des Programms:
+   1. Daten (Begriffe + Kategorien) aus dem Browser-Speicher laden
+   2. Daten als Karten anzeigen (render)
+   3. Bei Klick auf Buttons: anlegen, ändern, löschen, speichern
+   CRUD = Create (anlegen), Read (anzeigen), Update (ändern), Delete (löschen)
+   ===================================================================== */
+
+// ---------- 1. SPEICHER (localStorage) ----------
+// localStorage speichert Text unter einem Namen (Schlüssel) im Browser.
+// Wir legen unsere Daten als JSON-Text ab.
+const KEY = "linuxLexikon.v1";
+
+// So sieht unser Datenmodell aus:
+// db = { cats: ["Dateien", ...], items: [ {id, term, cat, expl, ex, links:[{title,url}], photos:[...]} ] }
+let db = { cats: [], items: [] };
+
+function load() {
+  try {                                   // try/catch fängt Fehler ab, damit die Seite nicht abstürzt
+    const raw = localStorage.getItem(KEY);
+    if (raw) db = JSON.parse(raw);        // JSON-Text -> JavaScript-Objekt
+  } catch (e) { console.warn("Laden fehlgeschlagen", e); }
+  if (!db.items.length && !db.cats.length) seed(); // beim ersten Start Beispieldaten
+}
+
+function save() {
+  try {
+    localStorage.setItem(KEY, JSON.stringify(db)); // Objekt -> JSON-Text
+  } catch (e) {
+    alert("Speichern nicht möglich (Speicher voll?). Bitte Fotos verkleinern oder weniger Fotos nutzen. Exportiere zur Sicherheit deine Daten.");
+  }
+}
+
+// Beispieldaten, damit die App am Anfang nicht leer ist
+function seed() {
+  db.cats = ["Dateien & Ordner", "Rechte", "Textsuche"];
+  db.items = [
+    { id: uid(), term: "ls", cat: "Dateien & Ordner", expl: "Zeigt den Inhalt eines Ordners an.", ex: "ls -la", links: [], photos: [] },
+    { id: uid(), term: "chmod", cat: "Rechte", expl: "Ändert die Zugriffsrechte einer Datei (lesen, schreiben, ausführen).", ex: "chmod +x skript.sh", links: [], photos: [] },
+    { id: uid(), term: "grep", cat: "Textsuche", expl: "Durchsucht Text oder Dateien nach einem Suchmuster.", ex: "grep -i \"fehler\" logdatei.txt", links: [], photos: [] }
+  ];
+  save();
+}
+
+// Eindeutige ID für jeden Eintrag (damit wir ihn später wiederfinden)
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+// ---------- 2. KLEINE HELFER ----------
+const $ = (id) => document.getElementById(id);   // Abkürzung für document.getElementById
+
+// Sonderzeichen entschärfen, damit eingegebener Text nie als HTML-Code läuft (Sicherheit!)
+function esc(s) {
+  return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// Nur http(s)-Links zulassen
+function safeUrl(u) { return /^https?:\/\//i.test(u) ? u : ""; }
+
+// ---------- 3. ANZEIGEN (Read + Suche + Filter) ----------
+let compact = false;        // Kompaktansicht an/aus (wird separat gemerkt)
+const openIds = new Set();  // in der Kompaktansicht aufgeklappte Karten
+let lastHits = []; // zuletzt angezeigte Begriffe (der Lernmodus übernimmt diese Auswahl)
+function render() {
+  const q = $("search").value.trim().toLowerCase();
+  const cat = $("filterCat").value;
+  const mode = $("filterMode").value; // "", "fav" oder "again"
+
+  // filter() behält nur Einträge, die zur Suche und Kategorie passen
+  const hits = db.items
+    .filter(i => !cat || (cat === "__none__" ? !i.cat : i.cat === cat))
+    .filter(i => !mode || (mode === "fav" ? i.fav : i.status === "again"))
+    .filter(i => !q || [i.term, i.expl, i.ex, i.cat, ...i.links.map(l => l.title)].join(" ").toLowerCase().includes(q))
+    .sort((a, b) => a.term.localeCompare(b.term, "de")); // alphabetisch
+
+  lastHits = hits;
+  $("list").classList.toggle("compact", compact);
+  updateBack();
+  $("btnCompact").textContent = "☰ Kompaktansicht: " + (compact ? "an" : "aus");
+  $("btnExpand").style.display = compact ? "" : "none";
+  $("btnExpand").textContent = hits.every(i => openIds.has(i.id)) ? "Alle zuklappen" : "Alle aufklappen";
+  $("count").textContent = hits.length + " von " + db.items.length + " Begriffen";
+
+  $("list").innerHTML = hits.map(i => `
+    <div class="card" id="c-${i.id}">
+      ${backHtml(i)}
+      <div class="head" data-toggle="${i.id}">
+      <h2><button class="star" data-fav="${i.id}" title="Favorit">${i.fav ? "★" : "☆"}</button> ${esc(i.term)}</h2>
+      ${i.cat ? `<span class="tag">${esc(i.cat)}</span>` : ""}
+      ${i.status === "known" ? `<span class="tag">✓ gewusst</span>` : i.status === "again" ? `<span class="tag">↻ unsicher</span>` : ""}
+      </div>
+      <div class="detail"${compact && !openIds.has(i.id) ? " hidden" : ""}>
+      ${i.expl ? `<div>${esc(i.expl).replace(/\n/g, "<br>")}</div>` : ""}
+      ${i.ex ? `<div class="label">Beispiel <button class="mini" data-copy="${i.id}">Kopieren</button></div><pre>${esc(i.ex)}</pre>` : ""}
+      ${i.links.length ? `<div class="label">Links</div><div class="links">${i.links.map(l =>
+          `<div><a href="${esc(l.url)}" target="_blank" rel="noopener noreferrer">${esc(l.title || l.url)}</a></div>`).join("")}</div>` : ""}
+      ${i.photos.length ? `<div class="pics">${i.photos.map(p => `<img src="${p}" alt="Foto zu ${esc(i.term)}" data-big="1">`).join("")}</div>` : ""}
+      ${relHtml(i)}
+      <div class="row">
+        <button data-edit="${i.id}">Bearbeiten</button>
+        <button class="danger" data-del="${i.id}">Löschen</button>
+      </div>
+      </div>
+    </div>`).join("") || `<p class="muted">Keine Treffer.</p>`;
+}
+
+// Auswahlfelder (Filter oben + Formular) mit den Kategorien füllen
+// Kategorien alphabetisch sortieren (Umlaute nach deutscher Regel)
+function sortCats() { db.cats.sort((a, b) => a.localeCompare(b, "de")); }
+
+function fillCats() {
+  sortCats();
+  const opts = db.cats.map(c => `<option>${esc(c)}</option>`).join("");
+  const keep = $("filterCat").value;
+  // "__none__" ist ein Sonderwert: zeigt nur Begriffe ohne Kategorie
+  $("filterCat").innerHTML = `<option value="">Alle Kategorien</option><option value="__none__">– keine –</option>` + opts;
+  $("filterCat").value = (db.cats.includes(keep) || keep === "__none__") ? keep : "";
+  $("fCat").innerHTML = `<option value="">– keine –</option>` + opts;
+}
+
+// ---------- 4. FORMULAR (Create + Update) ----------
+let editId = null;      // null = neuer Eintrag, sonst die ID des Eintrags, den wir ändern
+let tmpPhotos = [];     // Fotos, die gerade im Formular sind
+
+function openForm(id) {
+  editId = id || null;
+  const it = db.items.find(x => x.id === id) || { term: "", cat: "", expl: "", ex: "", links: [], photos: [] };
+  $("formTitle").textContent = id ? "Begriff bearbeiten" : "Neuer Begriff";
+  $("fTerm").value = it.term; $("fCat").value = it.cat; $("fExpl").value = it.expl; $("fEx").value = it.ex;
+  $("fLinks").value = it.links.map(l => (l.title ? l.title + " | " : "") + l.url).join("\n");
+  $("fPhotos").value = ""; $("fNewCat").value = "";
+  tmpPhotos = [...it.photos];
+  tmpRel = new Set(it.rel || []); $("fRelSearch").value = ""; drawRel();
+  drawThumbs();
+  $("dlgForm").classList.add("open");
+}
+
+function drawThumbs() {
+  $("fThumbs").innerHTML = tmpPhotos.map((p, n) =>
+    `<span class="thumb"><img src="${p}" alt=""><button data-rmphoto="${n}" title="Foto entfernen">×</button></span>`).join("");
+}
+
+// Foto verkleinern: großes Handy-Foto -> max. 800 px, als JPEG. Spart Speicherplatz!
+function shrink(file) {
+  return new Promise((resolve) => {
+    const r = new FileReader();
+    r.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const s = Math.min(1, 800 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+        c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL("image/jpeg", 0.7));
+      };
+      img.src = r.result;
+    };
+    r.readAsDataURL(file);
+  });
+}
+
+// Zeilen im Link-Feld in {title, url} umwandeln
+function parseLinks(text) {
+  return text.split("\n").map(l => l.trim()).filter(Boolean).map(l => {
+    const [a, b] = l.includes("|") ? l.split("|").map(x => x.trim()) : ["", l];
+    return { title: a, url: safeUrl(b) };
+  }).filter(l => l.url);
+}
+
+function saveForm() {
+  const term = $("fTerm").value.trim();
+  if (!term) { alert("Bitte einen Begriff eingeben."); return; }
+  $("btnFormCat").click(); // falls eine neue Kategorie getippt, aber nicht „Anlegen“ geklickt wurde
+  const data = { term, cat: $("fCat").value, expl: $("fExpl").value.trim(), ex: $("fEx").value.trim(),
+                 links: parseLinks($("fLinks").value), photos: tmpPhotos, rel: [...tmpRel] };
+  if (editId) Object.assign(db.items.find(x => x.id === editId), data);   // Update
+  else db.items.push({ id: uid(), ...data });                              // Create
+  save(); render();
+  $("dlgForm").classList.remove("open");
+}
+
+// ---------- 5. LÖSCHEN (Delete) ----------
+function del(id) {
+  const it = db.items.find(x => x.id === id);
+  if (it && confirm("„" + it.term + "“ wirklich löschen?")) {
+    db.items = db.items.filter(x => x.id !== id);
+    db.items.forEach(x => { if (x.rel) x.rel = x.rel.filter(r => r !== id); }); // Verknüpfungen auf diesen Begriff entfernen;   // Eintrag aus der Liste entfernen
+    save(); render();
+  }
+}
+
+// ---------- 6. KATEGORIEN VERWALTEN ----------
+function drawCatList() {
+  sortCats();
+  $("catList").innerHTML = db.cats.map((c, n) =>
+    `<div class="row"><span style="flex:1;align-self:center">${esc(c)}</span>
+     <button data-rencat="${n}">Umbenennen</button><button class="danger" data-delcat="${n}">Löschen</button></div>`).join("")
+    || `<p class="muted">Noch keine Kategorien.</p>`;
+}
+
+// ---------- 7. EXPORT / IMPORT ----------
+let exportJson = ""; // vollständiger Export-Text (inkl. Fotos) für Kopieren und Download
+function openIO(mode) {
+  const exp = mode === "export";
+  $("ioTitle").textContent = exp ? "Export" : "Import";
+  $("ioHelp").textContent = exp
+    ? "Kopiere den Text oder lade ihn als Datei herunter (linux-lexikon.json). In manchen Vorschau-Fenstern klappt der Download nicht, dann nimm „Kopieren“."
+    : "Füge hier den exportierten Text ein oder wähle eine .json-Datei. Neue Begriffe werden ergänzt, vorhandene mit gleicher ID überschrieben.";
+  exportJson = JSON.stringify(db, null, 2);
+  // Vorschau: Die langen Foto-Daten (Base64) würden den Text unlesbar machen, deshalb nur ein Kurzhinweis.
+  // Kopieren und Download nutzen trotzdem den vollständigen Text (exportJson).
+  $("ioText").value = exp ? JSON.stringify(db, (k, v) => (typeof v === "string" && v.startsWith("data:image")) ? "[Foto, " + Math.round(v.length / 1024) + " KB – im Export enthalten]" : v, 2) : "";
+  $("ioText").readOnly = exp; // Vorschau nur lesbar, beim Import darf man einfügen
+  $("ioAction").textContent = exp ? "Kopieren" : "Importieren";
+  $("ioAction").dataset.mode = mode;
+  $("ioFileRow").style.display = exp ? "none" : "block";
+  $("ioDownload").style.display = exp ? "" : "none"; // Download nur beim Export zeigen
+  $("ioMsg").textContent = "";
+  $("dlgIO").classList.add("open");
+}
+
+function doIO() {
+  if ($("ioAction").dataset.mode === "export") {
+    // Kopieren: immer den vollständigen Text verwenden, nicht die Vorschau
+    try { navigator.clipboard.writeText(exportJson).catch(() => {}); } catch (e) {}
+    const ta = document.createElement("textarea"); ta.value = exportJson;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    ta.remove();
+    $("ioMsg").textContent = "Kopiert.";
+    return;
+  }
+  try {
+    const d = JSON.parse($("ioText").value);
+    if (!Array.isArray(d.items)) throw new Error("Falsches Format");
+    d.cats = Array.isArray(d.cats) ? d.cats : [];
+    d.cats.forEach(c => { if (!db.cats.includes(c)) db.cats.push(c); });
+    d.items.forEach(n => {
+      n.id = n.id || uid(); n.links = n.links || []; n.photos = n.photos || [];
+      const k = db.items.findIndex(x => x.id === n.id);
+      if (k >= 0) db.items[k] = n; else db.items.push(n);
+      if (n.cat && !db.cats.includes(n.cat)) db.cats.push(n.cat);
+    });
+    save(); fillCats(); render();
+    $("ioMsg").textContent = d.items.length + " Begriffe importiert.";
+  } catch (e) { $("ioMsg").textContent = "Fehler: Das ist keine gültige Export-Datei."; }
+}
+
+// ---------- 8. BUTTONS MIT FUNKTIONEN VERBINDEN ----------
+$("search").addEventListener("input", render);
+$("filterCat").addEventListener("change", render);
+$("btnNew").onclick = () => openForm();
+$("btnSave").onclick = saveForm;
+$("btnCancel").onclick = () => $("dlgForm").classList.remove("open");
+$("btnCats").onclick = () => { drawCatList(); $("dlgCats").classList.add("open"); };
+$("btnCatsClose").onclick = () => $("dlgCats").classList.remove("open");
+$("btnExport").onclick = () => openIO("export");
+$("btnImport").onclick = () => openIO("import");
+$("ioAction").onclick = doIO;
+
+// Download-Button: erzeugt aus dem Text eine Datei und startet den Download
+$("ioDownload").onclick = () => {
+  try {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([exportJson], { type: "application/json" }));
+    a.download = "linux-lexikon.json"; a.click();
+    $("ioMsg").textContent = "Download gestartet.";
+  } catch (e) { $("ioMsg").textContent = "Download nicht möglich – bitte „Kopieren“ nutzen."; }
+};
+
+// Neue Kategorie direkt im Formular anlegen und gleich auswählen
+$("btnFormCat").onclick = () => {
+  const c = $("fNewCat").value.trim();
+  if (!c) return;
+  if (!db.cats.includes(c)) { db.cats.push(c); save(); }
+  fillCats();            // Auswahllisten neu aufbauen
+  $("fCat").value = c;   // neue Kategorie auswählen
+  $("fNewCat").value = "";
+};
+$("ioClose").onclick = () => $("dlgIO").classList.remove("open");
+$("dlgPic").onclick = () => $("dlgPic").classList.remove("open");
+
+$("fPhotos").addEventListener("change", async (e) => {
+  for (const f of e.target.files) tmpPhotos.push(await shrink(f));
+  drawThumbs();
+});
+
+$("ioFile").addEventListener("change", (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader(); r.onload = () => { $("ioText").value = r.result; }; r.readAsText(f);
+});
+
+$("btnAddCat").onclick = () => {
+  const c = $("newCat").value.trim();
+  if (c && !db.cats.includes(c)) { db.cats.push(c); save(); fillCats(); drawCatList(); }
+  $("newCat").value = "";
+};
+
+// Ein Klick-Lauscher für alle dynamisch erzeugten Buttons ("Event Delegation")
+document.addEventListener("click", (e) => {
+  const t = e.target;
+  if (t.dataset.edit) openForm(t.dataset.edit);
+  if (t.dataset.del) del(t.dataset.del);
+  if (t.dataset.fav) { const it = db.items.find(x => x.id === t.dataset.fav); it.fav = !it.fav; save(); render(); }
+  if (t.dataset.copy) copyExample(t.dataset.copy, t);
+  if (t.dataset.goto) gotoItem(t.dataset.goto, t.dataset.from);
+  if (t.dataset.back) gotoItem(navStack.pop(), null, true);
+  if (t.dataset.rel) { t.checked ? tmpRel.add(t.dataset.rel) : tmpRel.delete(t.dataset.rel); }
+  const head = t.closest("[data-toggle]");   // Klick auf den Kartenkopf (nur in der Kompaktansicht)
+  if (compact && head && !t.dataset.fav) { const id = head.dataset.toggle; openIds.has(id) ? openIds.delete(id) : openIds.add(id); render(); }
+  if (t.dataset.rmphoto) { tmpPhotos.splice(+t.dataset.rmphoto, 1); drawThumbs(); }
+  if (t.dataset.big) { $("bigPic").src = t.src; $("dlgPic").classList.add("open"); }
+  if (t.dataset.delcat) {
+    const c = db.cats[+t.dataset.delcat];
+    if (confirm("Kategorie „" + c + "“ löschen? Begriffe bleiben erhalten, verlieren aber die Kategorie.")) {
+      db.items.forEach(i => { if (i.cat === c) i.cat = ""; });
+      db.cats.splice(+t.dataset.delcat, 1); save(); fillCats(); drawCatList(); render();
+    }
+  }
+  if (t.dataset.rencat) {
+    const old = db.cats[+t.dataset.rencat];
+    const neu = (window.prompt ? prompt("Neuer Name für „" + old + "“:", old) : null);
+    if (neu && neu.trim() && !db.cats.includes(neu.trim())) {
+      db.items.forEach(i => { if (i.cat === old) i.cat = neu.trim(); });
+      db.cats[+t.dataset.rencat] = neu.trim(); save(); fillCats(); drawCatList(); render();
+    }
+  }
+});
+
+// ---------- BEISPIEL KOPIEREN ----------
+function copyExample(id, btn) {
+  const text = db.items.find(x => x.id === id).ex;
+  try { navigator.clipboard.writeText(text).catch(() => {}); } catch (e) {}
+  const ta = document.createElement("textarea"); ta.value = text;   // Reserve-Weg für ältere Browser
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); } catch (e) {}
+  ta.remove();
+  btn.textContent = "✓ Kopiert";
+  setTimeout(() => { btn.textContent = "Kopieren"; }, 1200);
+}
+
+// ---------- LERNMODUS (Karteikarten) ----------
+// Ablauf: Begriff sehen -> Antwort zeigen -> "Gewusst" oder "Nochmal" wählen.
+// Der Lernstatus (status) wird am Begriff gespeichert: "known" oder "again".
+let queue = [], qPos = 0;
+
+function startLearn() {
+  if (!lastHits.length) { alert("Keine Begriffe in der aktuellen Auswahl."); return; }
+  const shuffle = (a) => a.map(x => [Math.random(), x]).sort((p, q) => p[0] - q[0]).map(p => p[1]);
+  // Neue und unsichere Begriffe zuerst, bereits gewusste am Ende
+  queue = [...shuffle(lastHits.filter(i => i.status !== "known")), ...shuffle(lastHits.filter(i => i.status === "known"))];
+  qPos = 0; showCard();
+  $("dlgLearn").classList.add("open");
+}
+
+function showCard() {
+  const done = qPos >= queue.length;
+  $("lrProgress").textContent = done ? "Fertig! 🎉" : "Karte " + (qPos + 1) + " von " + queue.length;
+  $("lrTerm").textContent = done ? "Alle Karten durch." : queue[qPos].term;
+  $("lrAnswer").style.display = "none";
+  $("lrBtnsShow").style.display = done ? "none" : "flex";
+  $("lrBtnsRate").style.display = "none";
+}
+
+function revealCard() {
+  const i = queue[qPos];
+  $("lrAnswer").innerHTML = (i.expl ? `<div>${esc(i.expl).replace(/\n/g, "<br>")}</div>` : "") + (i.ex ? `<pre>${esc(i.ex)}</pre>` : "");
+  $("lrAnswer").style.display = "block";
+  $("lrBtnsShow").style.display = "none";
+  $("lrBtnsRate").style.display = "flex";
+}
+
+function rate(status) {
+  queue[qPos].status = status;   // gleiches Objekt wie in db.items, wird also mitgespeichert
+  save(); qPos++; showCard(); render();
+}
+
+$("btnLearn").onclick = startLearn;
+$("lrShow").onclick = revealCard;
+$("lrKnown").onclick = () => rate("known");
+$("lrAgain").onclick = () => rate("again");
+$("lrClose").onclick = () => $("dlgLearn").classList.remove("open");
+$("filterMode").addEventListener("change", render);
+
+// ---------- KOMPAKTANSICHT ----------
+// Die Einstellung wird getrennt vom Datenbestand gespeichert (kommt also nicht in den Export).
+function saveUi() { try { localStorage.setItem("linuxLexikon.ui", JSON.stringify({ compact })); } catch (e) {} }
+try { compact = !!JSON.parse(localStorage.getItem("linuxLexikon.ui")).compact; } catch (e) {}
+
+$("btnCompact").onclick = () => { compact = !compact; saveUi(); render(); };
+$("btnExpand").onclick = () => {
+  const allOpen = lastHits.every(i => openIds.has(i.id));
+  lastHits.forEach(i => allOpen ? openIds.delete(i.id) : openIds.add(i.id));
+  render();
+};
+
+// ---------- VERWANDTE BEGRIFFE ----------
+// Jeder Begriff hat eine Liste rel mit den IDs anderer Begriffe.
+let tmpRel = new Set();   // Auswahl im geöffneten Formular
+
+// Auswahlliste im Formular (ohne den Begriff selbst, filterbar)
+function drawRel() {
+  const f = $("fRelSearch").value.trim().toLowerCase();
+  const list = db.items.filter(x => x.id !== editId && (!f || x.term.toLowerCase().includes(f)))
+    .sort((a, b) => a.term.localeCompare(b.term, "de"));
+  $("fRel").innerHTML = list.map(x => `<label style="font-weight:400;display:flex;gap:8px;align-items:center;margin:2px 0"><input type="checkbox" data-rel="${x.id}" style="width:auto"${tmpRel.has(x.id) ? " checked" : ""}> ${esc(x.term)}</label>`).join("") || `<span class="muted">Keine Begriffe.</span>`;
+}
+$("fRelSearch").addEventListener("input", drawRel);
+
+// Chips auf der Karte; nicht mehr vorhandene Begriffe werden übersprungen
+function relHtml(i) {
+  const chips = (i.rel || []).map(id => db.items.find(x => x.id === id)).filter(Boolean)
+    .map(x => `<button class="chip" data-goto="${x.id}" data-from="${i.id}">${esc(x.term)}</button>`).join("");
+  return chips ? `<div class="label">Verwandt</div><div>${chips}</div>` : "";
+}
+
+// Zu einem verwandten Begriff springen. Die Filter bleiben erhalten, solange der Zielbegriff sichtbar ist.
+function gotoItem(id, from, isBack) {
+  if (from && !isBack) navStack.push(from);   // Ausgangskarte für den Zurück-Button merken
+  if (!lastHits.some(x => x.id === id)) { $("search").value = ""; $("filterCat").value = ""; $("filterMode").value = ""; }
+  navTarget = id; openIds.add(id); render();
+  const el = $("c-" + id);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+    el.style.outline = "2px solid var(--accent)";
+    setTimeout(() => { el.style.outline = ""; }, 1500);
+  }
+}
+
+// ---------- ZURÜCK-BUTTON (Verlauf der Sprünge) ----------
+let navTarget = null;   // Karte, zu der zuletzt gesprungen wurde (dort steht der Zurück-Button)
+let navStack = [];   // IDs der Karten, von denen aus gesprungen wurde (die letzte liegt oben)
+
+function updateBack() {
+  navStack = navStack.filter(id => db.items.some(x => x.id === id));   // gelöschte Begriffe entfernen
+  if (!navStack.length) navTarget = null;
+}
+
+// Der Zurück-Button steckt direkt über der Karte, zu der zuletzt gesprungen wurde
+function backHtml(i) {
+  const prev = i.id === navTarget && db.items.find(x => x.id === navStack[navStack.length - 1]);
+  return prev ? `<div class="row"><button class="primary" data-back="1">← Zurück zu „${esc(prev.term)}“</button></div>` : "";
+}
+
+// Wer selbst sucht oder filtert, beginnt neu: der Verlauf wird dann gelöscht
+["search", "filterCat", "filterMode"].forEach(id =>
+  $(id).addEventListener(id === "search" ? "input" : "change", () => { navStack = []; render(); }));
+
+// ---------- 9. START ----------
+load();      // Daten holen
+fillCats();  // Kategorien in die Auswahlfelder
+render();    // Karten zeichnen
+</script>
+</body>
+</html>
