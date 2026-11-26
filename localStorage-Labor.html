@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>localStorage-Labor</title>
+<style>
+:root{--bg:#eef2f4;--card:#fff;--fg:#14202b;--mu:#5b6b78;--ac:#0b6e8a;--acfg:#fff;--bd:#d3dce2;--cb:#0f1b24;--cf:#cfe6ee;--dg:#b3261e;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#0e161c;--card:#17222b;--fg:#e6eef2;--mu:#93a5b1;--ac:#5cc3e0;--acfg:#04222c;--bd:#2a3944;--cb:#081015;--cf:#cfe6ee;--dg:#ff8a80}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#0e161c;--card:#17222b;--fg:#e6eef2;--mu:#93a5b1;--ac:#5cc3e0;--acfg:#04222c;--bd:#2a3944;--cb:#081015;--cf:#cfe6ee;--dg:#ff8a80}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:760px;margin:0 auto;padding:16px 14px 60px}
+h1{font-size:1.7rem;margin:.4em 0 .1em;letter-spacing:-.01em}
+h2{font-size:1.2rem;margin:0 0 .5em}
+.sub,.muted,small{color:var(--mu)}
+.tabs{display:flex;gap:6px;margin:14px 0}
+.tabs button{flex:1;padding:11px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:10px;font:inherit;font-weight:600}
+.tabs button.on{background:var(--ac);color:var(--acfg);border-color:var(--ac)}
+details,.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin:0 0 10px}
+summary{font-weight:650;cursor:pointer}
+details[open] summary{margin-bottom:8px}
+pre,code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.84rem}
+pre{background:var(--cb);color:var(--cf);padding:11px 12px;border-radius:8px;overflow-x:auto;margin:8px 0;white-space:pre}
+p{margin:.5em 0}
+.tip{border-left:4px solid var(--ac);padding:6px 10px;background:var(--bg);border-radius:0 8px 8px 0}
+label{display:block;margin:8px 0;font-weight:500}
+input,select,button{font:inherit}
+input:not([type=checkbox]),select{display:block;width:100%;padding:9px 10px;margin-top:3px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg)}
+input[type=checkbox]{width:22px;height:22px;margin:4px 0 0;display:block}
+.row{display:grid;grid-template-columns:1fr 110px 40px;gap:6px;margin:6px 0}
+.row input,.row select{margin:0}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+button.pri,button.ghost{padding:9px 14px;border-radius:8px;border:1px solid var(--ac);cursor:pointer}
+button.pri{background:var(--ac);color:var(--acfg);font-weight:600}
+button.ghost{background:transparent;color:var(--ac)}
+button.danger{color:var(--dg);border-color:var(--dg)}
+button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--bd);white-space:nowrap}
+td.act{display:flex;gap:6px}
+td.act button{padding:5px 9px;font-size:.82rem}
+.live pre{max-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--fg);color:var(--bg);padding:9px 16px;border-radius:20px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center}
+#toast.on{opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+<main>
+<h1>localStorage-Labor</h1>
+<p class="sub">Erst die Theorie lesen, dann im Labor eine Datenbank anlegen und alle CRUD-Schritte ausprobieren.</p>
+<nav class="tabs"><button id="t1" class="on" onclick="tab(1)">Lernen</button><button id="t2" onclick="tab(2)">Labor</button></nav>
+
+<section id="p1">
+<details open><summary>1. Was ist localStorage?</summary>
+<p>Ein kleiner Speicher direkt im Browser. Die Daten bleiben erhalten, auch wenn du die Seite schließt oder das Gerät neu startest.</p>
+<p>Eckdaten: etwa 5 MB Platz, es lassen sich nur Texte speichern, jede Domain hat ihren eigenen Bereich, und alles bleibt auf diesem Gerät in diesem Browser. Einen Server gibt es nicht.</p>
+</details>
+<details><summary>2. Die fünf Befehle</summary>
+<pre>localStorage.setItem("name", "Anna");  // schreiben oder überschreiben
+localStorage.getItem("name");          // lesen: "Anna" oder null
+localStorage.removeItem("name");       // einen Eintrag löschen
+localStorage.clear();                  // ALLES löschen (Vorsicht!)
+localStorage.key(0);                   // Name des 1. Eintrags
+localStorage.length;                   // Anzahl der Einträge</pre>
+<p class="tip">Ein Eintrag besteht immer aus einem Schlüssel (Name) und einem Wert (Text).</p>
+</details>
+<details><summary>3. Nur Text: JSON als Übersetzer</summary>
+<p>Zahlen, Listen und Objekte muss man vor dem Speichern in Text umwandeln und beim Lesen zurückverwandeln.</p>
+<pre>const person = { name: "Anna", alter: 31 };
+localStorage.setItem("p", JSON.stringify(person));   // Objekt → Text
+const zurueck = JSON.parse(localStorage.getItem("p")); // Text → Objekt
+console.log(zurueck.alter); // 31</pre>
+</details>
+<details><summary>4. Eine „Datenbank“ nachbauen</summary>
+<p>localStorage kennt keine Tabellen. Du baust sie selbst: Der Schlüssel ist der Tabellenname, der Wert ein JSON-Text mit einer Liste von Datensätzen. Jeder Datensatz bekommt eine eindeutige <code>id</code>.</p>
+<pre>Schlüssel:  "lab:kontakte"
+Wert:       {
+  "fields": [{"name":"Name","type":"text"}],
+  "rows":   [{"id":"k1x","Name":"Anna"},
+             {"id":"k2y","Name":"Ben"}]
+}</pre>
+<p>Im Labor hat jede Datenbank eine Feldliste (fields) und die Datensätze (rows).</p>
+</details>
+<details><summary>5. CRUD: Laden, ändern, speichern</summary>
+<p class="tip">Merksatz: Man ändert nie einen einzelnen Datensatz im Speicher, sondern lädt die ganze Liste, ändert sie und speichert sie zurück.</p>
+<pre>const db = JSON.parse(localStorage.getItem("lab:kontakte"));
+
+// Create: hinzufügen
+db.rows.push({ id: "k3z", Name: "Cem" });
+
+// Read: lesen
+const ben = db.rows.find(r => r.id === "k2y");
+
+// Update: ersetzen
+const i = db.rows.findIndex(r => r.id === "k2y");
+db.rows[i] = { id: "k2y", Name: "Benjamin" };
+
+// Delete: entfernen
+db.rows = db.rows.filter(r => r.id !== "k1x");
+
+localStorage.setItem("lab:kontakte", JSON.stringify(db));</pre>
+<p>Die Datenbank selbst: anlegen mit <code>setItem</code>, umbenennen durch neu speichern und alten Schlüssel mit <code>removeItem</code> löschen, löschen mit <code>removeItem</code>.</p>
+</details>
+<details><summary>6. Stolpersteine</summary>
+<p>1. <code>getItem</code> liefert <code>null</code>, wenn es den Schlüssel nicht gibt. Prüfe das vor <code>JSON.parse</code>.<br>
+2. Ungültiges JSON lässt <code>JSON.parse</code> abstürzen. Nutze <code>try/catch</code>.<br>
+3. Wer die Browserdaten löscht, verliert alles. Wichtiges also exportieren.<br>
+4. Kein Abgleich zwischen Geräten und Browsern.<br>
+5. Keine Passwörter oder private Daten speichern, jedes Skript auf der Seite kann mitlesen.<br>
+6. Ist der Speicher voll oder gesperrt (z. B. im privaten Modus), wirft <code>setItem</code> einen Fehler.</p>
+</details>
+<p><button class="pri" onclick="tab(2)">Weiter zum Labor</button></p>
+</section>
+
+<section id="p2" hidden>
+<div class="card">
+<h2>Schritt 1: Datenbank anlegen</h2>
+<label>Name der Datenbank<input id="dbname" placeholder="z. B. kontakte" autocomplete="off"></label>
+<p style="margin:10px 0 2px;font-weight:500">Felder</p>
+<div id="fb"></div>
+<div class="btns">
+<button class="ghost" onclick="draft.push({name:'',type:'text'});rB()">+ Feld</button>
+<button class="ghost" onclick="demo()">Beispiel mit allen Datentypen</button>
+<button class="pri" onclick="createDb()">Datenbank anlegen</button>
+</div>
+</div>
+
+<div class="card">
+<h2>Schritt 2: Datenbank wählen</h2>
+<p id="none" class="muted">Noch keine Datenbank vorhanden. Lege oben eine an.</p>
+<div id="has" hidden>
+<label>Aktive Datenbank<select id="sel" onchange="pick(this.value)"></select></label>
+<label>Umbenennen in<input id="newname" placeholder="neuer Name" autocomplete="off"></label>
+<div class="btns">
+<button class="ghost" onclick="renameDb()">Umbenennen</button>
+<button class="ghost danger" onclick="arming('db',this,delDb)">Datenbank löschen</button>
+</div>
+</div>
+</div>
+
+<div id="data" hidden>
+<div class="card">
+<h2>Schritt 3: Datensatz hinzufügen oder bearbeiten</h2>
+<div id="rf"></div>
+<div class="btns">
+<button id="saveBtn" class="pri" onclick="saveRow()">Datensatz hinzufügen</button>
+<button id="cancelBtn" class="ghost" onclick="editId=null;rF();code('// Bearbeiten abgebrochen')" hidden>Abbrechen</button>
+</div>
+</div>
+<div class="card">
+<h2>Schritt 4: Datensätze lesen, bearbeiten, löschen</h2>
+<div id="tb"></div>
+</div>
+</div>
+
+<div class="card live">
+<h2>Code der letzten Aktion</h2>
+<pre id="code">// Hier erscheint der JavaScript-Code, der bei deiner letzten Aktion lief.</pre>
+<h2 style="margin-top:14px">Live-Ansicht: Inhalt von localStorage</h2>
+<p class="muted" style="margin-top:0">So sieht der Browser deine Daten wirklich. Es werden nur Einträge mit der Vorsilbe „lab:“ gezeigt.</p>
+<pre id="raw"></pre>
+</div>
+
+<div class="card">
+<h2>Übungen</h2>
+<p>1. Lege die Datenbank „kontakte“ mit den Feldern Name (Text), Alter (Zahl) und Geburtstag (Datum) an.<br>
+2. Füge drei Datensätze hinzu und beobachte die Live-Ansicht.<br>
+3. Ändere den zweiten Datensatz und lösche den dritten.<br>
+4. Benenne die Datenbank um. Was passiert mit dem Schlüssel?<br>
+5. Lade die Seite neu. Sind die Daten noch da?</p>
+</div>
+</section>
+</main>
+<div id="toast" role="status"></div>
+
+<script>
+const P='lab:',$=id=>document.getElementById(id);
+let cur='',editId=null,arm='',tm,draft=[{name:'',type:'text'}];
+const TYPES={text:'Text',number:'Zahl',date:'Datum',checkbox:'Ja/Nein'};
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const L=()=>`const db = JSON.parse(localStorage.getItem("${P}${cur}"));\n`;
+const S=()=>`\nlocalStorage.setItem("${P}${cur}", JSON.stringify(db));`;
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(tm);tm=setTimeout(()=>e.classList.remove('on'),2400)}
+function code(t){$('code').textContent=t}
+function names(){const k=[];try{for(let i=0;i<localStorage.length;i++){const x=localStorage.key(i);if(x&&x.startsWith(P))k.push(x.slice(P.length))}}catch(e){}return k.sort()}
+function get(n){try{return JSON.parse(localStorage.getItem(P+n))}catch(e){return null}}
+function put(n,d){try{localStorage.setItem(P+n,JSON.stringify(d));return true}catch(e){toast('Speichern nicht möglich: Speicher gesperrt oder voll.');return false}}
+function drop(n){try{localStorage.removeItem(P+n)}catch(e){}}
+function tab(n){[1,2].forEach(i=>{$('p'+i).hidden=i!=n;$('t'+i).classList.toggle('on',i==n)});window.scrollTo(0,0)}
+function arming(key,btn,fn){if(arm===key){arm='';fn()}else{arm=key;const o=btn.textContent;btn.textContent='Sicher? Nochmal tippen';setTimeout(()=>{if(arm===key){arm='';btn.textContent=o}},2500)}}
+
+function rB(){$('fb').innerHTML=draft.map((f,i)=>`<div class="row"><input placeholder="Feldname" aria-label="Feldname" value="${esc(f.name)}" oninput="draft[${i}].name=this.value"><select aria-label="Datentyp" onchange="draft[${i}].type=this.value">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}"${f.type==k?' selected':''}>${v}</option>`).join('')}</select><button class="ghost" aria-label="Feld entfernen" onclick="draft.splice(${i},1);if(!draft.length)draft.push({name:'',type:'text'});rB()">✕</button></div>`).join('')}
+function demo(){$('dbname').value='beispiel';draft=[{name:'Name',type:'text'},{name:'Alter',type:'number'},{name:'Geburtstag',type:'date'},{name:'Aktiv',type:'checkbox'}];rB()}
+
+function createDb(){
+ const n=$('dbname').value.trim(),f=draft.map(x=>({name:x.name.trim(),type:x.type})).filter(x=>x.name);
+ if(!n)return toast('Bitte einen Namen eingeben.');
+ if(names().includes(n))return toast('Diese Datenbank gibt es schon.');
+ if(!f.length)return toast('Mindestens ein Feld mit Namen nötig.');
+ if(new Set(f.map(x=>x.name)).size<f.length)return toast('Feldnamen müssen verschieden sein.');
+ if(f.some(x=>x.name==='id'))return toast('„id“ ist reserviert, wähle einen anderen Namen.');
+ const d={fields:f,rows:[]};
+ if(put(n,d)){cur=n;editId=null;code(`localStorage.setItem("${P}${n}",\n  JSON.stringify(${JSON.stringify(d)}));`);$('dbname').value='';draft=[{name:'',type:'text'}];rB();all();toast('Datenbank angelegt.')}
+}
+function pick(v){cur=v;editId=null;all();code(L()+'console.log(db.rows);  // alle Datensätze lesen')}
+function renameDb(){
+ const n=$('newname').value.trim();
+ if(!cur||!n)return toast('Bitte einen neuen Namen eingeben.');
+ if(names().includes(n))return toast('Dieser Name ist schon vergeben.');
+ const d=get(cur);
+ if(put(n,d)){drop(cur);code(`const d = localStorage.getItem("${P}${cur}");\nlocalStorage.setItem("${P}${n}", d);\nlocalStorage.removeItem("${P}${cur}");`);cur=n;$('newname').value='';all();toast('Umbenannt.')}
+}
+function delDb(){code(`localStorage.removeItem("${P}${cur}");`);drop(cur);cur='';editId=null;all();toast('Datenbank gelöscht.')}
+
+function rF(){
+ const d=get(cur);if(!d)return;
+ const r=editId?d.rows.find(x=>x.id==editId):null;
+ $('rf').innerHTML=d.fields.map((f,i)=>{
+  const v=r?r[f.name]:'';
+  const inp=f.type=='checkbox'?`<input type="checkbox" id="f${i}"${v?' checked':''}>`:`<input id="f${i}" type="${f.type}" value="${esc(v)}"${f.type=='number'?' step="any"':''}>`;
+  return `<label>${esc(f.name)} <small>(${TYPES[f.type]})</small>${inp}</label>`}).join('');
+ $('saveBtn').textContent=editId?'Änderung speichern':'Datensatz hinzufügen';
+ $('cancelBtn').hidden=!editId;
+}
+function saveRow(){
+ const d=get(cur);if(!d)return;
+ const o={};
+ d.fields.forEach((f,i)=>{const e=$('f'+i);o[f.name]=f.type=='checkbox'?e.checked:f.type=='number'?(e.value===''?'':Number(e.value)):e.value});
+ let c;
+ if(editId){
+  const i=d.rows.findIndex(x=>x.id==editId);if(i<0)return;
+  d.rows[i]=Object.assign({id:editId},o);
+  c=L()+`const i = db.rows.findIndex(r => r.id === "${editId}");\ndb.rows[i] = ${JSON.stringify(d.rows[i])};`+S();
+ }else{
+  const row=Object.assign({id:Date.now().toString(36)},o);d.rows.push(row);
+  c=L()+`db.rows.push(${JSON.stringify(row)});`+S();
+ }
+ if(put(cur,d)){code(c);toast(editId?'Datensatz geändert.':'Datensatz hinzugefügt.');editId=null;all()}
+}
+function editRow(id){editId=id;rF();code(L()+`const row = db.rows.find(r => r.id === "${id}");  // lesen, dann im Formular ändern`);$('rf').scrollIntoView({behavior:'smooth',block:'center'})}
+function delRow(id){
+ const d=get(cur);if(!d)return;
+ d.rows=d.rows.filter(r=>r.id!==id);
+ if(put(cur,d)){code(L()+`db.rows = db.rows.filter(r => r.id !== "${id}");`+S());if(editId==id)editId=null;all();toast('Datensatz gelöscht.')}
+}
+function rT(){
+ const d=get(cur);if(!d)return;
+ $('tb').innerHTML=d.rows.length?`<div class="scroll"><table><thead><tr>${d.fields.map(f=>`<th>${esc(f.name)}</th>`).join('')}<th></th></tr></thead><tbody>${d.rows.map(r=>`<tr>${d.fields.map(f=>`<td>${f.type=='checkbox'?(r[f.name]?'Ja':'Nein'):esc(r[f.name])}</td>`).join('')}<td class="act"><button class="ghost" onclick="editRow('${r.id}')">Bearbeiten</button><button class="ghost danger" onclick="arming('r${r.id}',this,()=>delRow('${r.id}'))">Löschen</button></td></tr>`).join('')}</tbody></table></div>`:'<p class="muted">Noch keine Datensätze. Fülle das Formular aus und füge einen hinzu.</p>';
+}
+function rR(){const k=names();$('raw').textContent=k.length?k.map(n=>`"${P}${n}":\n${JSON.stringify(get(n),null,1)}`).join('\n\n'):'(leer: noch keine Datenbank angelegt)'}
+function all(){
+ const k=names();if(!k.includes(cur))cur=k[0]||'';
+ $('sel').innerHTML=k.map(n=>`<option${n==cur?' selected':''}>${esc(n)}</option>`).join('');
+ $('has').hidden=!cur;$('none').hidden=!!cur;$('data').hidden=!cur;
+ if(cur){rF();rT()}
+ rR();
+}
+rB();all();
+</script>
+</body>
+</html>
