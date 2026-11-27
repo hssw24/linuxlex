@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>localStorage &amp; Eruda Lernarchiv</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #131c31;
+      --surface-2: #1e293b;
+      --border: #334155;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-dim: rgba(56, 189, 248, 0.15);
+      --green: #4ade80;
+      --amber: #fbbf24;
+      --red: #f87171;
+      --code-bg: #060a14;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.5;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    body {
+      padding-bottom: 240px;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      width: 100%;
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 14px;
+    }
+
+    .header-inner {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 7px 10px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0b1120;
+      border-color: var(--accent);
+    }
+
+    .btn-eruda-active {
+      background: rgba(74, 222, 128, 0.18);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn-run {
+      background: rgba(74, 222, 128, 0.15);
+      border-color: rgba(74, 222, 128, 0.45);
+      color: var(--green);
+    }
+
+    .btn-danger {
+      background: rgba(248, 113, 113, 0.15);
+      border-color: rgba(248, 113, 113, 0.4);
+      color: var(--red);
+    }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 9px 36px 9px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.92rem;
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
+
+    .clear-search {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 4px 6px;
+      font-size: 0.9rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+    }
+
+    .filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      white-space: nowrap;
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 0.78rem;
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .chip.active {
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    main {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 14px;
+      min-width: 0;
+    }
+
+    .status-line {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    #cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .card {
+      width: 100%;
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 15px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      margin-bottom: 5px;
+    }
+
+    .card h2 {
+      font-size: 1.02rem;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .summary {
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .explanation {
+      font-size: 0.86rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .takeaway {
+      font-size: 0.82rem;
+      background: rgba(251, 191, 36, 0.08);
+      border-left: 3px solid var(--amber);
+      padding: 8px 10px;
+      border-radius: 0 8px 8px 0;
+      color: #fde68a;
+      margin-bottom: 12px;
+    }
+
+    .code-wrapper {
+      width: 100%;
+      min-width: 0;
+      background: var(--code-bg);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .code-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #0f172a;
+      border-bottom: 1px solid #1e293b;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .code-label {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .code-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    .code-btns button {
+      padding: 4px 9px;
+      font-size: 0.76rem;
+    }
+
+    pre {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 11px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.8rem;
+      line-height: 1.45;
+      color: #e2e8f0;
+      margin: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tag {
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 2px 7px;
+      border-radius: 5px;
+      border: 1px solid #1e293b;
+    }
+
+    mark {
+      background: rgba(56, 189, 248, 0.35);
+      color: #ffffff;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+
+    /* Live Console Drawer - Fixed full viewport width */
+    #console-drawer {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 100vw;
+      z-index: 40;
+      background: #070b14;
+      border-top: 2px solid var(--accent);
+      box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .console-inner {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 8px 12px;
+      min-width: 0;
+    }
+
+    .console-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .console-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .console-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .console-controls button {
+      padding: 4px 8px;
+      font-size: 0.75rem;
+    }
+
+    #console-body {
+      display: block;
+      width: 100%;
+      min-width: 0;
+    }
+
+    #console-drawer.minimized #console-body {
+      display: none;
+    }
+
+    #console-output {
+      width: 100%;
+      max-width: 100%;
+      height: 115px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      background: #03060c;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 7px 9px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.76rem;
+      margin-bottom: 7px;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .log-line {
+      padding: 2px 0;
+      border-bottom: 1px solid rgba(30, 41, 59, 0.45);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .log-info { color: #cbd5e1; }
+    .log-warn { color: var(--amber); }
+    .log-error { color: var(--red); }
+    .log-ret { color: var(--green); }
+
+    .console-input-row {
+      display: flex;
+      gap: 6px;
+      width: 100%;
+      min-width: 0;
+    }
+
+    .console-input-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.8rem;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0, 0, 0, 0.75);
+      padding: 16px;
+      overflow-y: auto;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      width: 100%;
+      max-width: 500px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+    }
+
+    .modal-box h3 {
+      margin-bottom: 12px;
+      font-size: 1.05rem;
+    }
+
+    .field {
+      margin-bottom: 11px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.86rem;
+    }
+
+    .field textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      min-height: 85px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <div class="top-bar">
+        <div class="brand">
+          <span>🗄️</span>
+          <h1>localStorage &amp; Eruda Archiv</h1>
+        </div>
+        <div class="actions">
+          <button type="button" id="eruda-toggle-btn">🛠️ Eruda: Aus</button>
+          <button type="button" id="open-backup-btn">💾 Backup</button>
+          <button type="button" class="btn-primary" id="open-add-btn">+ Eintrag</button>
+        </div>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="search-input" placeholder="Suche nach Begriff, Befehl, Fehler, JSON, TTL...">
+        <button type="button" class="clear-search" id="clear-search-btn" title="Suche leeren">✕</button>
+      </div>
+
+      <div class="filters" id="filter-bar">
+        <button type="button" class="chip active" data-cat="all">Alle (11)</button>
+        <button type="button" class="chip" data-cat="begriffe">Begriffe &amp; Aha</button>
+        <button type="button" class="chip" data-cat="basis">Basis-Befehle</button>
+        <button type="button" class="chip" data-cat="praxis">Praxis &amp; Tricks</button>
+        <button type="button" class="chip" data-cat="limits">Limits &amp; Storage</button>
+        <button type="button" class="chip" data-cat="eigene">Eigene Notizen</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="status-line">
+      <span id="result-count">Bereit</span>
+      <span>Tipp: Code direkt per ▶ testen oder für Eruda kopieren</span>
+    </div>
+    <div id="cards-container"></div>
+  </main>
+
+  <!-- Integrierte Live-Konsole -->
+  <section id="console-drawer">
+    <div class="console-inner">
+      <div class="console-head">
+        <div class="console-title">⚡ Live-Konsole (Direkt-Test)</div>
+        <div class="console-controls">
+          <button type="button" id="console-clear-btn">Leeren</button>
+          <button type="button" id="console-toggle-btn">Minimieren</button>
+        </div>
+      </div>
+      <div id="console-body">
+        <div id="console-output"></div>
+        <div class="console-input-row">
+          <input type="text" id="console-input" placeholder="JS-Befehl eingeben, z.B. Object.keys(localStorage)">
+          <button type="button" class="btn-primary" id="console-run-btn">Run</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal: Neuer Eintrag -->
+  <div class="modal-backdrop" id="add-modal">
+    <div class="modal-box">
+      <h3>Neuen Wissens-Eintrag speichern</h3>
+      <form id="add-form">
+        <div class="field">
+          <label for="f-cat">Kategorie</label>
+          <select id="f-cat">
+            <option value="eigene">Eigene Notizen</option>
+            <option value="begriffe">Begriffe &amp; Aha-Momente</option>
+            <option value="basis">Basis-Befehle</option>
+            <option value="praxis">Praxis &amp; Tricks</option>
+            <option value="limits">Limits &amp; Storage</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-title">Titel / Befehl *</label>
+          <input type="text" id="f-title" placeholder="z. B. Cookies auslesen" required>
+        </div>
+        <div class="field">
+          <label for="f-summary">Kurzfassung *</label>
+          <input type="text" id="f-summary" placeholder="Ein Satz zum Zweck" required>
+        </div>
+        <div class="field">
+          <label for="f-explanation">Ausführliche Erklärung</label>
+          <textarea id="f-explanation" placeholder="Wie funktioniert es? Worauf muss man achten?"></textarea>
+        </div>
+        <div class="field">
+          <label for="f-takeaway">Merksatz (optional)</label>
+          <input type="text" id="f-takeaway" placeholder="Wichtigster Aha-Moment">
+        </div>
+        <div class="field">
+          <label for="f-code">JavaScript Code-Beispiel (optional)</label>
+          <textarea id="f-code" placeholder="console.log(document.cookie);"></textarea>
+        </div>
+        <div class="field">
+          <label for="f-tags">Schlagwörter (kommagetrennt)</label>
+          <input type="text" id="f-tags" placeholder="Cookie, Speicher, Test">
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="close-add-btn">Abbrechen</button>
+          <button type="submit" class="btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Backup -->
+  <div class="modal-backdrop" id="backup-modal">
+    <div class="modal-box">
+      <h3>Eigene Notizen sichern &amp; wiederherstellen</h3>
+      <p style="font-size: 0.84rem; color: var(--muted); margin-bottom: 12px;">
+        Deine selbst hinzugefügten Einträge werden im <code>localStorage</code> gespeichert. Hier kannst du sie als JSON exportieren oder wieder einspielen.
+      </p>
+      <div class="field">
+        <label for="backup-text">JSON-Daten</label>
+        <textarea id="backup-text" placeholder="Hier erscheint dein Export oder füge hier ein Backup ein..."></textarea>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="close-backup-btn">Schließen</button>
+        <button type="button" id="export-btn">Export anzeigen</button>
+        <button type="button" class="btn-primary" id="import-btn">Importieren</button>
+      </div>
+    </div>
+  </div>
+
+  <script id="builtin-data" type="application/json">[{"id": "b1", "category": "begriffe", "title": "Was ist localStorage? (Grundprinzip)", "summary": "Dauerhafter Browser-Speicher pro Domain (Origin) für Schlüssel-Wert-Paare.", "explanation": "Der localStorage speichert Daten dauerhaft im Browser – auch nach dem Schließen des Tabs oder einem Neustart des Smartphones. Die Daten sind strikt an die jeweilige Domain (z. B. meine-app.vercel.app) gebunden. Andere Websites können sie nicht lesen.", "takeaway": "Kein Ablaufdatum von Haus aus; bleibt erhalten, bis der Nutzer oder ein Skript ihn löscht (Ausnahme: iOS Safari löscht nach 7 Tagen Inaktivität im normalen Browser-Tab).", "code": "localStorage.setItem('test_hallo', 'Welt');\nconsole.log(localStorage.getItem('test_hallo'));\nlocalStorage.removeItem('test_hallo');", "tags": ["localStorage", "Grundlagen", "Domain", "Persistenz"]}, {"id": "b2", "category": "begriffe", "title": "Alles-ist-ein-String-Falle (Datentypen)", "summary": "Zahlen und Booleans werden beim Speichern immer zu reinem Text (Strings).", "explanation": "Egal ob du eine Zahl (25) oder einen Wahrheitswert (false) übergibst: localStorage wandelt alles automatisch in Text um. Beim Auslesen ist '25' + 5 plötzlich '255' und der Text 'false' gilt in if-Abfragen als wahr (truthy), weil der String nicht leer ist.", "takeaway": "Zahlen mit Number() umwandeln und Objekte/Booleans über JSON.stringify() und JSON.parse() speichern bzw. laden.", "code": "localStorage.setItem('test_alter', 25);\nlocalStorage.setItem('test_aktiv', false);\n\nconst rohAlter = localStorage.getItem('test_alter');\nconsole.log('Typ:', typeof rohAlter, '| Falsch gerechnet:', rohAlter + 5);\nconsole.log('Richtig gerechnet:', Number(rohAlter) + 5);\n\nif (localStorage.getItem('test_aktiv')) {\n  console.log('Achtung: Der String \"false\" ist truthy!');\n}\n\nlocalStorage.removeItem('test_alter');\nlocalStorage.removeItem('test_aktiv');", "tags": ["String", "typeof", "Number", "boolean", "Falle"]}, {"id": "b3", "category": "begriffe", "title": "Konsolen-Rückgaben verstehen (undefined, Timer-ID, Promise)", "summary": "Warum die Konsole manchmal Zahlen wie 295 oder Promise {} direkt ausgibt.", "explanation": "Die Konsole druckt nach jedem ausgeführten Block immer das direkte Ergebnis der letzten Zeile aus: 'undefined' bedeutet, der Befehl hat keinen eigenen Rückgabewert (z. B. setItem). Eine Zahl wie '295' nach setTimeout() ist die laufende ID des Timers (wichtig für clearTimeout). 'Promise {}' ist ein Versprechen auf ein Ergebnis, das asynchron erst kurz danach eintrifft.", "takeaway": "Rückgabewerte unter deinem Befehl sind keine Fehler, sondern direkte Antworten von JavaScript.", "code": "const timerId = setTimeout(() => {\n  console.log('Timer ist abgelaufen!');\n}, 1500);\nconsole.log('Vergebene Timer-ID:', timerId);", "tags": ["undefined", "Promise", "setTimeout", "Timer-ID", "Konsole"]}, {"id": "b4", "category": "begriffe", "title": "Unterschied: localStorage vs. sessionStorage vs. IndexedDB", "summary": "Die drei wichtigsten Speicherarten im Browser im direkten Vergleich.", "explanation": "localStorage (ca. 5 MB) speichert dauerhaft über Tab-Schließungen hinweg. sessionStorage (ca. 5 MB) nutzt exakt dieselben Befehle, löscht sich aber sofort, sobald der aktuelle Browser-Tab geschlossen wird. IndexedDB ist eine asynchrone NoSQL-Datenbank für große Datenmengen (oft mehrere GB).", "takeaway": "Für kleine Einstellungen -> localStorage. Für flüchtige Sitzungsdaten -> sessionStorage. Für große Daten/Dateien -> IndexedDB.", "code": "localStorage.setItem('test_local', 'Bleibt dauerhaft');\nsessionStorage.setItem('test_session', 'Nur in diesem Tab');\n\nconsole.log('Local:', localStorage.getItem('test_local'));\nconsole.log('Session:', sessionStorage.getItem('test_session'));\n\nlocalStorage.removeItem('test_local');\nsessionStorage.removeItem('test_session');", "tags": ["sessionStorage", "IndexedDB", "Vergleich", "Unterschied"]}, {"id": "k1", "category": "basis", "title": "Basis-CRUD: Schreiben, Lesen, Einzeln löschen, Leeren", "summary": "Die vier wichtigsten Grundbefehle für den Alltag in der Konsole.", "explanation": "Mit setItem(key, value) legst du einen Wert an oder überschreibst ihn. getItem(key) holt den Wert zurück (oder liefert null, falls nicht vorhanden). removeItem(key) löscht gezielt einen Eintrag. clear() löscht ausnahmslos alle Einträge der aktuellen Domain.", "takeaway": "Beim Testen auf fremden oder eigenen Seiten immer ein Präfix wie 'test_' nutzen, damit keine echten App-Daten gelöscht werden.", "code": "localStorage.setItem('test_user', 'Max');\nconsole.log('Gelesen:', localStorage.getItem('test_user'));\n\nlocalStorage.removeItem('test_user');\nconsole.log('Nach Löschen:', localStorage.getItem('test_user'));", "tags": ["setItem", "getItem", "removeItem", "clear", "CRUD"]}, {"id": "k2", "category": "basis", "title": "Objekte & Listen (Arrays) mit JSON speichern", "summary": "Komplexe Datenstrukturen sauber verpacken und wieder auspacken.", "explanation": "Um ein JavaScript-Objekt oder eine Liste (Array) im localStorage abzulegen, wandelst du es vor dem Speichern mit JSON.stringify() in einen JSON-Text um. Beim Auslesen machst du daraus mit JSON.parse() wieder ein echtes JavaScript-Objekt.", "takeaway": "Immer JSON.parse() in try/catch verpacken, falls im Speicher ungültiger Text steht.", "code": "const config = { theme: 'dark', schrift: 16, tags: ['js', 'web'] };\nlocalStorage.setItem('test_config', JSON.stringify(config));\n\nconst geladen = JSON.parse(localStorage.getItem('test_config'));\nconsole.log('Theme:', geladen.theme, '| Erstes Tag:', geladen.tags[0]);\n\nlocalStorage.removeItem('test_config');", "tags": ["JSON.stringify", "JSON.parse", "Objekt", "Array"]}, {"id": "k3", "category": "basis", "title": "Bestandsaufnahme: Alle Einträge & Schlüssel anzeigen", "summary": "Schnell prüfen, was eine Website im localStorage gespeichert hat.", "explanation": "Mit localStorage.length siehst du die Anzahl der Einträge. Object.keys(localStorage) liefert alle Schlüsselnamen als Liste. In der echten Eruda- oder Desktop-Konsole zeigt console.table(localStorage) eine übersichtliche Tabelle an.", "takeaway": "Ideal, um auf einer Seite nachzusehen, welche Daten im Hintergrund abgelegt wurden.", "code": "localStorage.setItem('test_eins', '111');\nlocalStorage.setItem('test_zwei', '222');\n\nconsole.log('Anzahl Einträge:', localStorage.length);\nconsole.log('Alle Schlüssel:', Object.keys(localStorage));\n\nlocalStorage.removeItem('test_eins');\nlocalStorage.removeItem('test_zwei');", "tags": ["Object.keys", "length", "console.table", "Übersicht"]}, {"id": "p1", "category": "praxis", "title": "Ablaufdatum (TTL - Time To Live) selbst bauen", "summary": "Einträge nach X Sekunden automatisch ungültig machen und löschen.", "explanation": "Da localStorage kein eingebautes Verfallsdatum kennt, speichert man ein Objekt aus dem eigentlichen Wert und einem Ziel-Zeitstempel (Date.now() + Sekunden * 1000). Beim Auslesen wird geprüft, ob die aktuelle Zeit größer als der Ablauf-Zeitstempel ist.", "takeaway": "Perfekt für temporäre Zwischenspeicher (Caching) oder zeitlich begrenzte Hinweise.", "code": "function setMitAblauf(key, wert, sekunden) {\n  const paket = { wert: wert, ablauf: Date.now() + (sekunden * 1000) };\n  localStorage.setItem(key, JSON.stringify(paket));\n}\n\nfunction getMitAblauf(key) {\n  const roh = localStorage.getItem(key);\n  if (!roh) return null;\n  const paket = JSON.parse(roh);\n  if (Date.now() > paket.ablauf) {\n    localStorage.removeItem(key);\n    return null;\n  }\n  return paket.wert;\n}\n\nsetMitAblauf('test_token', 'Geheim123', 2);\nconsole.log('Sofort:', getMitAblauf('test_token'));\nsetTimeout(() => {\n  console.log('Nach 2,5 Sek:', getMitAblauf('test_token'));\n}, 2500);", "tags": ["TTL", "Ablaufdatum", "Date.now", "setTimeout", "Cache"]}, {"id": "p2", "category": "praxis", "title": "Live-Funk zwischen zwei Browser-Tabs (storage-Event)", "summary": "Änderungen im localStorage live in anderen offenen Tabs empfangen.", "explanation": "Wenn dieselbe Seite in zwei Tabs geöffnet ist und Tab 2 einen Wert im localStorage ändert, feuert im Tab 1 automatisch das 'storage'-Event auf window. Das Event enthält den geänderten Schlüssel (key), den alten Wert (oldValue) und den neuen Wert (newValue).", "takeaway": "Das storage-Event löst immer nur in den jeweils ANDEREN Tabs derselben Domain aus, nicht im eigenen Tab.", "code": "window.addEventListener('storage', (e) => {\n  console.log('Tab-Signal empfangen ->', e.key, ':', e.newValue);\n});\nconsole.log('Listener aktiv! Öffne diese Seite in einem 2. Tab und ändere dort einen Wert.');", "tags": ["storage", "Event", "Tabs", "Kommunikation", "addEventListener"]}, {"id": "l1", "category": "limits", "title": "Speicherverbrauch & QuotaExceededError testen", "summary": "Aktuelle Belegung in KB berechnen und das 5-MB-Limit sicher abfangen.", "explanation": "Browser begrenzen den localStorage meist auf ca. 5 MB. Wird mehr geschrieben, wirft der Browser einen 'QuotaExceededError'. Ohne try/catch bricht das gesamte Skript ab. Mit new Blob(Object.values(localStorage)).size lässt sich der aktuelle Verbrauch in Bytes messen.", "takeaway": "Schreibzugriffe mit größeren Daten immer in try/catch verpacken.", "code": "const bytes = new Blob(Object.values(localStorage)).size;\nconsole.log('Aktueller Verbrauch:', (bytes / 1024).toFixed(2), 'KB');\n\ntry {\n  const zuGross = 'x'.repeat(6 * 1024 * 1024);\n  localStorage.setItem('test_overflow', zuGross);\n} catch (err) {\n  console.error('Limit erreicht:', err.name);\n} finally {\n  localStorage.removeItem('test_overflow');\n}", "tags": ["Limit", "5MB", "QuotaExceededError", "Blob", "try-catch"]}, {"id": "l2", "category": "limits", "title": "Gesamtspeicher & IndexedDB-Nutzung prüfen (Storage API)", "summary": "Abfragen, wie viele Gigabyte der Browser insgesamt freigibt.", "explanation": "Über navigator.storage.estimate() liefert der Browser ein Promise mit dem Gesamtkontingent (quota) und dem aktuellen Verbrauch (usage sowie usageDetails für IndexedDB und Caches). Auf Android Chrome liegt das Limit oft bei mehreren Gigabyte.", "takeaway": "Ideal, um zu prüfen, wie viel Platz für große Offline-Apps oder IndexedDB auf dem Handy frei ist.", "code": "if (navigator.storage && navigator.storage.estimate) {\n  navigator.storage.estimate().then(e => {\n    console.log('Gesamtlimit (GB):', (e.quota / 1024 / 1024 / 1024).toFixed(2));\n    console.log('Belegt (KB):', (e.usage / 1024).toFixed(2));\n    console.log('Details:', JSON.stringify(e.usageDetails));\n  });\n} else {\n  console.log('Storage Estimate API nicht verfügbar.');\n}", "tags": ["navigator.storage", "estimate", "IndexedDB", "quota", "usageDetails"]}]</script>
+
+  <script>
+    (function () {
+      var CUSTOM_KEY = 'ls_eruda_archiv_custom_v1';
+      var builtinEntries = [];
+
+      try {
+        var rawJson = document.getElementById('builtin-data').textContent;
+        builtinEntries = JSON.parse(rawJson);
+      } catch (e) {
+        builtinEntries = [];
+      }
+
+      var customEntries = [];
+      try {
+        var saved = localStorage.getItem(CUSTOM_KEY);
+        if (saved) customEntries = JSON.parse(saved);
+      } catch (e) {
+        customEntries = [];
+      }
+
+      var activeCat = 'all';
+      var searchQuery = '';
+
+      var container = document.getElementById('cards-container');
+      var resultCount = document.getElementById('result-count');
+      var searchInput = document.getElementById('search-input');
+      var consoleOutput = document.getElementById('console-output');
+      var consoleDrawer = document.getElementById('console-drawer');
+
+      var catLabels = {
+        begriffe: 'Begriffe & Aha',
+        basis: 'Basis-Befehle',
+        praxis: 'Praxis & Tricks',
+        limits: 'Limits & Storage',
+        eigene: 'Eigene Notiz'
+      };
+
+      function getAllEntries() {
+        return customEntries.concat(builtinEntries);
+      }
+
+      function saveCustomEntries() {
+        try {
+          localStorage.setItem(CUSTOM_KEY, JSON.stringify(customEntries));
+        } catch (e) {
+          logToConsole('Fehler beim Speichern im localStorage: ' + e.message, 'error');
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function highlightText(text, query) {
+        var safe = escapeHtml(text);
+        if (!query) return safe;
+        var escapedQuery = query.replace(/[.*+?^${}()|[\]\]/g, '\$&');
+        var regex = new RegExp('(' + escapedQuery + ')', 'gi');
+        return safe.replace(regex, '<mark>$1</mark>');
+      }
+
+      function renderCards() {
+        var all = getAllEntries();
+        var q = searchQuery.trim().toLowerCase();
+
+        var filtered = all.filter(function (item) {
+          var matchesCat = (activeCat === 'all') || (item.category === activeCat);
+          if (!matchesCat) return false;
+          if (!q) return true;
+
+          var haystack = [
+            item.title,
+            item.summary,
+            item.explanation,
+            item.takeaway,
+            item.code,
+            (item.tags || []).join(' ')
+          ].join(' ').toLowerCase();
+
+          return haystack.indexOf(q) !== -1;
+        });
+
+        resultCount.textContent = filtered.length + ' von ' + all.length + ' Einträgen';
+        container.innerHTML = '';
+
+        if (filtered.length === 0) {
+          container.innerHTML = '<div class="card"><p style="color: var(--muted);">Keine passenden Einträge gefunden. Passe die Suche oder den Filter an.</p></div>';
+          return;
+        }
+
+        filtered.forEach(function (item) {
+          var card = document.createElement('article');
+          card.className = 'card';
+
+          var isCustom = String(item.id).indexOf('custom_') === 0;
+          var badgeText = catLabels[item.category] || item.category;
+
+          var html = '';
+          html += '<div class="card-header">';
+          html += '<div>';
+          html += '<span class="badge">' + escapeHtml(badgeText) + '</span>';
+          html += '<h2>' + highlightText(item.title, searchQuery.trim()) + '</h2>';
+          html += '</div>';
+          if (isCustom) {
+            html += '<button type="button" class="btn-danger delete-entry-btn" data-id="' + escapeHtml(item.id) + '" title="Löschen">🗑️</button>';
+          }
+          html += '</div>';
+
+          html += '<p class="summary">' + highlightText(item.summary, searchQuery.trim()) + '</p>';
+
+          if (item.explanation) {
+            html += '<p class="explanation">' + highlightText(item.explanation, searchQuery.trim()) + '</p>';
+          }
+
+          if (item.takeaway) {
+            html += '<div class="takeaway"><strong>💡 Merksatz:</strong> ' + highlightText(item.takeaway, searchQuery.trim()) + '</div>';
+          }
+
+          if (item.code) {
+            html += '<div class="code-wrapper">';
+            html += '<div class="code-toolbar">';
+            html += '<span class="code-label">JavaScript</span>';
+            html += '<div class="code-btns">';
+            html += '<button type="button" class="copy-code-btn">📋 Kopieren</button>';
+            html += '<button type="button" class="btn-run run-code-btn">▶ Ausführen</button>';
+            html += '</div>';
+            html += '</div>';
+            html += '<pre>' + highlightText(item.code, searchQuery.trim()) + '</pre>';
+            html += '</div>';
+          }
+
+          if (item.tags && item.tags.length > 0) {
+            html += '<div class="tags">';
+            item.tags.forEach(function (t) {
+              html += '<span class="tag">#' + highlightText(t, searchQuery.trim()) + '</span>';
+            });
+            html += '</div>';
+          }
+
+          card.innerHTML = html;
+
+          if (item.code) {
+            var copyBtn = card.querySelector('.copy-code-btn');
+            var runBtn = card.querySelector('.run-code-btn');
+
+            copyBtn.addEventListener('click', function () {
+              copyToClipboard(item.code, copyBtn);
+            });
+
+            runBtn.addEventListener('click', function () {
+              executeSnippet(item.code, item.title);
+            });
+          }
+
+          if (isCustom) {
+            var delBtn = card.querySelector('.delete-entry-btn');
+            delBtn.addEventListener('click', function () {
+              customEntries = customEntries.filter(function (c) { return c.id !== item.id; });
+              saveCustomEntries();
+              updateFilterCounts();
+              renderCards();
+            });
+          }
+
+          container.appendChild(card);
+        });
+      }
+
+      function updateFilterCounts() {
+        var allChip = document.querySelector('.chip[data-cat="all"]');
+        if (allChip) {
+          allChip.textContent = 'Alle (' + getAllEntries().length + ')';
+        }
+      }
+
+      function copyToClipboard(text, btn) {
+        var orig = btn.textContent;
+        function done() {
+          btn.textContent = '✅ Kopiert!';
+          setTimeout(function () { btn.textContent = orig; }, 1600);
+        }
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {
+            fallbackCopy(text);
+            done();
+          });
+        } else {
+          fallbackCopy(text);
+          done();
+        }
+      }
+
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+
+      /* Live-Konsole Logik */
+      function formatArg(arg) {
+        if (arg === null) return 'null';
+        if (arg === undefined) return 'undefined';
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }
+
+      function logToConsole(msg, type) {
+        var line = document.createElement('div');
+        line.className = 'log-line log-' + (type || 'info');
+        line.textContent = msg;
+        consoleOutput.appendChild(line);
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+      }
+
+      function executeSnippet(code, label) {
+        consoleDrawer.classList.remove('minimized');
+        document.getElementById('console-toggle-btn').textContent = 'Minimieren';
+
+        if (label) {
+          logToConsole('▶ Test: ' + label, 'info');
+        }
+
+        var origLog = console.log;
+        var origWarn = console.warn;
+        var origError = console.error;
+
+        console.log = function () {
+          var parts = Array.prototype.slice.call(arguments).map(formatArg);
+          logToConsole(parts.join(' '), 'info');
+          origLog.apply(console, arguments);
+        };
+        console.warn = function () {
+          var parts = Array.prototype.slice.call(arguments).map(formatArg);
+          logToConsole('⚠️ ' + parts.join(' '), 'warn');
+          origWarn.apply(console, arguments);
+        };
+        console.error = function () {
+          var parts = Array.prototype.slice.call(arguments).map(formatArg);
+          logToConsole('❌ ' + parts.join(' '), 'error');
+          origError.apply(console, arguments);
+        };
+
+        try {
+          var result = (0, eval)(code);
+          if (result !== undefined) {
+            if (result && typeof result.then === 'function') {
+              logToConsole('← Promise {}', 'ret');
+            } else {
+              logToConsole('← ' + formatArg(result), 'ret');
+            }
+          }
+        } catch (err) {
+          logToConsole('❌ ' + err.name + ': ' + err.message, 'error');
+        } finally {
+          setTimeout(function () {
+            console.log = origLog;
+            console.warn = origWarn;
+            console.error = origError;
+          }, 3000);
+        }
+      }
+
+      /* Events: Suche & Filter */
+      searchInput.addEventListener('input', function () {
+        searchQuery = searchInput.value;
+        renderCards();
+      });
+
+      document.getElementById('clear-search-btn').addEventListener('click', function () {
+        searchInput.value = '';
+        searchQuery = '';
+        renderCards();
+      });
+
+      document.getElementById('filter-bar').addEventListener('click', function (e) {
+        var btn = e.target.closest('.chip');
+        if (!btn) return;
+        document.querySelectorAll('.chip').forEach(function (c) { c.classList.remove('active'); });
+        btn.classList.add('active');
+        activeCat = btn.getAttribute('data-cat');
+        renderCards();
+      });
+
+      /* Events: Live-Konsole */
+      document.getElementById('console-clear-btn').addEventListener('click', function () {
+        consoleOutput.innerHTML = '';
+      });
+
+      document.getElementById('console-toggle-btn').addEventListener('click', function () {
+        var minimized = consoleDrawer.classList.toggle('minimized');
+        this.textContent = minimized ? 'Öffnen' : 'Minimieren';
+        document.body.style.paddingBottom = minimized ? '65px' : '240px';
+      });
+
+      var consoleInput = document.getElementById('console-input');
+      document.getElementById('console-run-btn').addEventListener('click', function () {
+        var cmd = consoleInput.value.trim();
+        if (!cmd) return;
+        logToConsole('> ' + cmd, 'info');
+        executeSnippet(cmd, '');
+        consoleInput.value = '';
+      });
+
+      consoleInput.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          document.getElementById('console-run-btn').click();
+        }
+      });
+
+      /* Eruda Schalter */
+      var erudaActive = false;
+      var erudaBtn = document.getElementById('eruda-toggle-btn');
+
+      erudaBtn.addEventListener('click', function () {
+        if (erudaActive) {
+          if (window.eruda) {
+            try { window.eruda.destroy(); } catch (e) {}
+          }
+          erudaActive = false;
+          erudaBtn.textContent = '🛠️ Eruda: Aus';
+          erudaBtn.classList.remove('btn-eruda-active');
+          logToConsole('Eruda-Konsole deaktiviert.', 'info');
+          return;
+        }
+
+        erudaBtn.textContent = '⏳ Lädt...';
+
+        function startEruda() {
+          try {
+            window.eruda.init();
+            erudaActive = true;
+            erudaBtn.textContent = '🛠️ Eruda: An';
+            erudaBtn.classList.add('btn-eruda-active');
+            logToConsole('Eruda gestartet! Tippe auf das schwebende Zahnrad-Symbol.', 'ret');
+          } catch (err) {
+            erudaBtn.textContent = '🛠️ Eruda: Aus';
+            logToConsole('Eruda konnte nicht gestartet werden: ' + err.message, 'error');
+          }
+        }
+
+        if (window.eruda) {
+          startEruda();
+        } else {
+          var script = document.createElement('script');
+          script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+          script.onload = startEruda;
+          script.onerror = function () {
+            erudaBtn.textContent = '🛠️ Eruda: Aus';
+            logToConsole('Eruda-Skript konnte nicht geladen werden (Offline oder blockiert).', 'error');
+          };
+          document.body.appendChild(script);
+        }
+      });
+
+      /* Modal: Neuer Eintrag */
+      var addModal = document.getElementById('add-modal');
+      document.getElementById('open-add-btn').addEventListener('click', function () {
+        document.getElementById('add-form').reset();
+        addModal.classList.add('open');
+      });
+      document.getElementById('close-add-btn').addEventListener('click', function () {
+        addModal.classList.remove('open');
+      });
+
+      document.getElementById('add-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var rawTags = document.getElementById('f-tags').value.trim();
+        var tags = rawTags ? rawTags.split(',').map(function (t) { return t.trim(); }).filter(Boolean) : [];
+
+        var newItem = {
+          id: 'custom_' + Date.now(),
+          category: document.getElementById('f-cat').value,
+          title: document.getElementById('f-title').value.trim(),
+          summary: document.getElementById('f-summary').value.trim(),
+          explanation: document.getElementById('f-explanation').value.trim(),
+          takeaway: document.getElementById('f-takeaway').value.trim(),
+          code: document.getElementById('f-code').value.trim(),
+          tags: tags
+        };
+
+        customEntries.unshift(newItem);
+        saveCustomEntries();
+        updateFilterCounts();
+        renderCards();
+        addModal.classList.remove('open');
+        logToConsole('Neuer Eintrag "' + newItem.title + '" gespeichert.', 'ret');
+      });
+
+      /* Modal: Backup */
+      var backupModal = document.getElementById('backup-modal');
+      var backupText = document.getElementById('backup-text');
+
+      document.getElementById('open-backup-btn').addEventListener('click', function () {
+        backupText.value = JSON.stringify(customEntries, null, 2);
+        backupModal.classList.add('open');
+      });
+      document.getElementById('close-backup-btn').addEventListener('click', function () {
+        backupModal.classList.remove('open');
+      });
+      document.getElementById('export-btn').addEventListener('click', function () {
+        backupText.value = JSON.stringify(customEntries, null, 2);
+        backupText.select();
+      });
+      document.getElementById('import-btn').addEventListener('click', function () {
+        try {
+          var parsed = JSON.parse(backupText.value);
+          if (!Array.isArray(parsed)) throw new Error('Kein gültiges Array');
+          customEntries = parsed;
+          saveCustomEntries();
+          updateFilterCounts();
+          renderCards();
+          backupModal.classList.remove('open');
+          logToConsole('Backup erfolgreich importiert (' + parsed.length + ' Einträge).', 'ret');
+        } catch (err) {
+          alert('Ungültiges JSON-Format: ' + err.message);
+        }
+      });
+
+      /* Start */
+      updateFilterCounts();
+      renderCards();
+      logToConsole('Archiv geladen. Bereit für localStorage-Tests!', 'ret');
+    })();
+  </script>
+</body>
+</html>
