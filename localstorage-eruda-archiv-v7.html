@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>localStorage & Eruda Archiv</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --surface: #1e293b;
+      --surface-2: #0b1120;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-2: #a3e635;
+      --danger: #ef4444;
+      --border: #334155;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      line-height: 1.5;
+    }
+
+    body {
+      padding-bottom: 240px;
+    }
+
+    body.console-collapsed {
+      padding-bottom: 64px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 14px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 11px;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-primary { background: var(--accent); color: #0f172a; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-run { background: var(--accent-2); color: #0f172a; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-sm { padding: 5px 9px; font-size: 0.8rem; }
+
+    .search-box {
+      width: 100%;
+      margin-bottom: 10px;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.95rem;
+    }
+
+    .filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+      margin-bottom: 12px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .filter-btn {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 12px;
+      font-size: 0.8rem;
+      flex-shrink: 0;
+    }
+
+    .filter-btn.active {
+      background: var(--accent);
+      color: #0f172a;
+      border-color: var(--accent);
+    }
+
+    #cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .card {
+      width: 100%;
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px;
+    }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+      flex-wrap: nowrap;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--accent);
+      border: 1px solid var(--border);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+      overflow-wrap: break-word;
+    }
+
+    .card-summary {
+      font-size: 0.9rem;
+      color: #e2e8f0;
+      margin-bottom: 6px;
+      overflow-wrap: break-word;
+    }
+
+    .card-note {
+      font-size: 0.82rem;
+      color: var(--muted);
+      background: rgba(15, 23, 42, 0.55);
+      border-left: 3px solid var(--accent);
+      padding: 6px 9px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+      overflow-wrap: break-word;
+    }
+
+    .code-wrap {
+      width: 100%;
+      min-width: 0;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    pre {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.8rem;
+      color: #a5f3fc;
+      white-space: pre;
+      margin: 0;
+    }
+
+    .code-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      padding: 6px 8px;
+      background: rgba(30, 41, 59, 0.7);
+      border-top: 1px solid var(--border);
+    }
+
+    /* Fixierte Live-Konsole unten */
+    .console-dock {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 100%;
+      background: #020617;
+      border-top: 2px solid var(--accent);
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .console-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 12px;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border);
+      gap: 8px;
+    }
+
+    .console-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--accent-2);
+    }
+
+    .console-body {
+      width: 100%;
+      height: 135px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+    }
+
+    body.console-collapsed .console-body,
+    body.console-collapsed .console-input-row {
+      display: none;
+    }
+
+    .log-line {
+      padding: 3px 0;
+      border-bottom: 1px solid rgba(51, 65, 85, 0.4);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .log-info { color: #e2e8f0; }
+    .log-err { color: #fca5a5; }
+    .log-ret { color: #94a3b8; font-style: italic; }
+
+    .console-input-row {
+      display: flex;
+      gap: 6px;
+      padding: 7px 12px;
+      background: #0f172a;
+      border-top: 1px solid var(--border);
+      width: 100%;
+    }
+
+    .console-input-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 9px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: #020617;
+      color: var(--text);
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+    }
+
+    /* Overlay Modals */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      padding: 14px;
+      overflow-y: auto;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .overlay.open {
+      display: flex;
+    }
+
+    .modal {
+      width: 100%;
+      max-width: 480px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+    }
+
+    .modal h2 {
+      font-size: 1.05rem;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      margin-bottom: 10px;
+    }
+
+    .field label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .field input, .field select, .field textarea {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-2);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+
+    .field textarea {
+      font-family: ui-monospace, monospace;
+      min-height: 85px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>localStorage &amp; Eruda</h1>
+      <div class="header-actions">
+        <button type="button" class="btn-secondary" id="btn-backup">Backup</button>
+        <button type="button" class="btn-primary" id="btn-add">+ Eintrag</button>
+      </div>
+    </header>
+
+    <div class="search-box">
+      <input type="search" id="search-input" placeholder="Suchen nach Begriff, Befehl, Code...">
+    </div>
+
+    <div class="filters" id="filter-bar">
+      <button type="button" class="filter-btn active" data-cat="all">Alle</button>
+      <button type="button" class="filter-btn" data-cat="concepts">Begriffe &amp; Aha</button>
+      <button type="button" class="filter-btn" data-cat="basics">Basis-Befehle</button>
+      <button type="button" class="filter-btn" data-cat="practice">Praxis &amp; Tests</button>
+      <button type="button" class="filter-btn" data-cat="storage">Speicher &amp; Limits</button>
+      <button type="button" class="filter-btn" data-cat="custom">Eigene</button>
+    </div>
+
+    <main id="cards-list"></main>
+  </div>
+
+  <!-- Live-Konsole -->
+  <section class="console-dock">
+    <div class="console-header">
+      <span class="console-title">Live-Konsole (Sandbox)</span>
+      <div style="display:flex; gap:6px;">
+        <button type="button" class="btn-secondary btn-sm" id="btn-clear-log">Leeren</button>
+        <button type="button" class="btn-secondary btn-sm" id="btn-toggle-console">Einklappen</button>
+      </div>
+    </div>
+    <div class="console-body" id="console-output"></div>
+    <form class="console-input-row" id="console-form">
+      <input type="text" id="console-cmd" placeholder="Befehl testen, z.B. localStorage.length">
+      <button type="submit" class="btn-run btn-sm">Run</button>
+    </form>
+  </section>
+
+  <!-- Modal: Eintrag erstellen/bearbeiten -->
+  <div class="overlay" id="edit-overlay">
+    <div class="modal">
+      <h2 id="modal-heading">Neuer Eintrag</h2>
+      <form id="entry-form">
+        <input type="hidden" id="entry-id">
+        <div class="field">
+          <label for="entry-cat">Kategorie</label>
+          <select id="entry-cat">
+            <option value="custom">Eigene Notiz</option>
+            <option value="concepts">Begriffe &amp; Aha</option>
+            <option value="basics">Basis-Befehle</option>
+            <option value="practice">Praxis &amp; Tests</option>
+            <option value="storage">Speicher &amp; Limits</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="entry-title">Titel *</label>
+          <input type="text" id="entry-title" required>
+        </div>
+        <div class="field">
+          <label for="entry-summary">Erklärung *</label>
+          <input type="text" id="entry-summary" required>
+        </div>
+        <div class="field">
+          <label for="entry-note">Merksatz / Besonderheit</label>
+          <input type="text" id="entry-note">
+        </div>
+        <div class="field">
+          <label for="entry-code">Code-Beispiel</label>
+          <textarea id="entry-code"></textarea>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-edit">Abbrechen</button>
+          <button type="submit" class="btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Backup Export/Import -->
+  <div class="overlay" id="backup-overlay">
+    <div class="modal">
+      <h2>Backup (Export / Import)</h2>
+      <div class="field">
+        <label for="backup-text">JSON-Daten (kopieren oder einfügen)</label>
+        <textarea id="backup-text" style="min-height:140px;"></textarea>
+      </div>
+      <div class="modal-footer" style="flex-wrap:wrap;">
+        <button type="button" class="btn-secondary" id="btn-copy-backup">Kopieren</button>
+        <button type="button" class="btn-run" id="btn-import-backup">Importieren</button>
+        <button type="button" class="btn-secondary" id="btn-reset-default">Standard wiederherstellen</button>
+        <button type="button" class="btn-primary" id="btn-close-backup">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sauber getrenntes JSON-Datenpaket -->
+  <script type="application/json" id="initial-data">[{"id": "e1", "category": "basics", "title": "localStorage Grundlagen (Lesen, Schreiben, Löschen)", "summary": "Speichert Daten als Schlüssel-Wert-Paare (Key-Value) dauerhaft im Textformat für die aktuelle Domain.", "note": "Bleibt auch nach Neuladen der Seite oder Schließen des Browsers erhalten.", "code": "localStorage.setItem('test_name', 'Max');\nconsole.log('Gelesen:', localStorage.getItem('test_name'));\nlocalStorage.removeItem('test_name');"}, {"id": "e2", "category": "concepts", "title": "Die 'Alles-ist-ein-String'-Falle", "summary": "Zahlen und Wahrheitswerte (Booleans) werden automatisch in Text (Strings) umgewandelt.", "note": "Ohne Umwandlung wird aus 25 + 5 der Text '255' und der Text 'false' gilt als wahr!", "code": "localStorage.setItem('test_alter', 25);\nconst wert = localStorage.getItem('test_alter');\nconsole.log('Typ:', typeof wert);\nconsole.log('Als Text + 5:', wert + 5);\nconsole.log('Als Zahl + 5:', Number(wert) + 5);\nlocalStorage.removeItem('test_alter');"}, {"id": "e3", "category": "basics", "title": "Objekte & Listen speichern (JSON)", "summary": "Komplexe Daten müssen vor dem Speichern mit JSON.stringify() in Text umgewandelt und beim Laden mit JSON.parse() zurückverwandelt werden.", "note": "Unverzichtbar für Einstellungen, Benutzerdaten oder ganze Listen.", "code": "const cfg = { darkmode: true, stufe: 2 };\nlocalStorage.setItem('test_cfg', JSON.stringify(cfg));\nconst geladen = JSON.parse(localStorage.getItem('test_cfg'));\nconsole.log('Darkmode:', geladen.darkmode);\nlocalStorage.removeItem('test_cfg');"}, {"id": "e4", "category": "basics", "title": "Alle gespeicherten Einträge anzeigen", "summary": "Überblick über Anzahl, Schlüsselnamen und Werte im aktuellen Speicher verschaffen.", "note": "In der echten Eruda-Konsole gibt console.table(localStorage) eine übersichtliche Tabelle aus.", "code": "localStorage.setItem('test_a', '1');\nlocalStorage.setItem('test_b', '2');\nconsole.log('Anzahl:', localStorage.length);\nconsole.log('Keys:', Object.keys(localStorage));\nlocalStorage.removeItem('test_a');\nlocalStorage.removeItem('test_b');"}, {"id": "e5", "category": "concepts", "title": "Konsolen-Rückgabewerte verstehen (undefined, Timer-ID, Promise)", "summary": "Die Konsole zeigt nach der Ausführung immer den direkten Rückgabewert des letzten Befehls an.", "note": "undefined = kein Rückgabewert; Zahl (z.B. 295) = ID eines Timers; Promise {} = asynchrones Ergebnis folgt gleich.", "code": "const timerId = setTimeout(() => {\n  console.log('Timer fertig!');\n}, 1000);\nconsole.log('Gestartete Timer-ID:', timerId);"}, {"id": "e6", "category": "practice", "title": "Speicherverbrauch in KB berechnen", "summary": "Berechnet mit einem Blob, wie viele Kilobyte die aktuelle Seite im localStorage belegt.", "note": "Das Limit liegt in den meisten mobilen Browsern bei ca. 5 MB (5120 KB).", "code": "const bytes = new Blob(Object.values(localStorage)).size;\nconsole.log('Verbrauch: ' + (bytes / 1024).toFixed(2) + ' KB');"}, {"id": "e7", "category": "practice", "title": "Speicherlimit & QuotaExceededError abfangen", "summary": "Wenn das 5-MB-Limit überschritten wird, wirft der Browser einen QuotaExceededError.", "note": "Mit try / catch / finally verhinderst du einen Skript-Absturz und räumst sauber auf.", "code": "try {\n  const riesenText = 'x'.repeat(6 * 1024 * 1024);\n  localStorage.setItem('test_zuGross', riesenText);\n} catch (err) {\n  console.error('Speicher voll:', err.name);\n} finally {\n  localStorage.removeItem('test_zuGross');\n}"}, {"id": "e8", "category": "practice", "title": "Ablaufdatum (TTL) für Einträge bauen", "summary": "Verpackt den Wert zusammen mit einem Zeitstempel, um veraltete Daten automatisch zu löschen.", "note": "Date.now() liefert die aktuelle Zeit in Millisekunden.", "code": "const daten = { wert: 'Geheim123', ablauf: Date.now() + 2000 };\nlocalStorage.setItem('test_ttl', JSON.stringify(daten));\nconsole.log('Sofort:', JSON.parse(localStorage.getItem('test_ttl')).wert);\nsetTimeout(() => {\n  const check = JSON.parse(localStorage.getItem('test_ttl'));\n  if (check && Date.now() > check.ablauf) {\n    localStorage.removeItem('test_ttl');\n    console.log('Nach 2,5 Sek: Abgelaufen & gelöscht!');\n  }\n}, 2500);"}, {"id": "e9", "category": "storage", "title": "Gesamtspeicher & IndexedDB prüfen", "summary": "Fragt über navigator.storage.estimate() ab, wie viel Speicherplatz der Browser insgesamt freigibt.", "note": "Gibt ein Promise zurück. usageDetails zeigt u.a. den Verbrauch der großen IndexedDB.", "code": "navigator.storage.estimate().then(e => {\n  console.log('Limit (GB):', (e.quota / 1024 / 1024 / 1024).toFixed(2));\n  console.log('Details:', JSON.stringify(e.usageDetails));\n});"}, {"id": "e10", "category": "concepts", "title": "Unterschied: localStorage vs. sessionStorage vs. IndexedDB", "summary": "localStorage (5 MB, dauerhaft), sessionStorage (5 MB, nur bis Tab geschlossen wird), IndexedDB (mehrere GB, asynchrone Datenbank).", "note": "Auf iOS Safari löscht ITP localStorage nach 7 Tagen ohne Besuch, außer die Seite liegt auf dem Homescreen.", "code": "sessionStorage.setItem('test_tab', 'Nur dieser Tab');\nconsole.log('Session:', sessionStorage.getItem('test_tab'));\nsessionStorage.removeItem('test_tab');"}]</script>
+
+  <script>
+    (function () {
+      var STORAGE_KEY = 'ls_eruda_archive_stable_v1';
+      var CAT_LABELS = {
+        concepts: 'Begriffe & Aha',
+        basics: 'Basis-Befehle',
+        practice: 'Praxis & Tests',
+        storage: 'Speicher & Limits',
+        custom: 'Eigene'
+      };
+
+      var initialRaw = document.getElementById('initial-data').textContent;
+      var defaultEntries = JSON.parse(initialRaw);
+      var entries = [];
+      var activeCat = 'all';
+
+      function loadEntries() {
+        try {
+          var saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            var parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              entries = parsed;
+              return;
+            }
+          }
+        } catch (e) {}
+        entries = defaultEntries.slice();
+      }
+
+      function saveEntries() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+        } catch (e) {
+          appendLog('Speicherfehler: ' + e.message, 'err');
+        }
+      }
+
+      function escapeHtml(str) {
+        return String(str || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function renderCards() {
+        var list = document.getElementById('cards-list');
+        var q = document.getElementById('search-input').value.trim().toLowerCase();
+        list.innerHTML = '';
+
+        var filtered = entries.filter(function (item) {
+          var matchCat = activeCat === 'all' || item.category === activeCat;
+          if (!matchCat) return false;
+          if (!q) return true;
+          var hay = (item.title + ' ' + item.summary + ' ' + (item.note || '') + ' ' + (item.code || '')).toLowerCase();
+          return hay.indexOf(q) !== -1;
+        });
+
+        if (filtered.length === 0) {
+          list.innerHTML = '<div class="card"><p class="card-summary">Keine passenden Einträge gefunden.</p></div>';
+          return;
+        }
+
+        filtered.forEach(function (item) {
+          var card = document.createElement('article');
+          card.className = 'card';
+
+          var catName = CAT_LABELS[item.category] || 'Eintrag';
+          var noteHtml = item.note ? '<div class="card-note">' + escapeHtml(item.note) + '</div>' : '';
+          var codeHtml = '';
+
+          if (item.code && item.code.trim()) {
+            codeHtml =
+              '<div class="code-wrap">' +
+                '<pre>' + escapeHtml(item.code) + '</pre>' +
+                '<div class="code-bar">' +
+                  '<button type="button" class="btn-secondary btn-sm" data-action="copy" data-id="' + item.id + '">Kopieren</button>' +
+                  '<button type="button" class="btn-run btn-sm" data-action="run" data-id="' + item.id + '">Ausführen</button>' +
+                '</div>' +
+              '</div>';
+          }
+
+          card.innerHTML =
+            '<div class="card-top">' +
+              '<span class="badge">' + escapeHtml(catName) + '</span>' +
+              '<div class="card-actions">' +
+                '<button type="button" class="btn-secondary btn-sm" data-action="edit" data-id="' + item.id + '">Edit</button>' +
+                '<button type="button" class="btn-danger btn-sm" data-action="delete" data-id="' + item.id + '">Löschen</button>' +
+              '</div>' +
+            '</div>' +
+            '<h2 class="card-title">' + escapeHtml(item.title) + '</h2>' +
+            '<p class="card-summary">' + escapeHtml(item.summary) + '</p>' +
+            noteHtml +
+            codeHtml;
+
+          list.appendChild(card);
+        });
+      }
+
+      // Live-Konsole
+      var consoleOut = document.getElementById('console-output');
+
+      function appendLog(text, type) {
+        var line = document.createElement('div');
+        line.className = 'log-line ' + (type === 'err' ? 'log-err' : (type === 'ret' ? 'log-ret' : 'log-info'));
+        line.textContent = text;
+        consoleOut.appendChild(line);
+        consoleOut.scrollTop = consoleOut.scrollHeight;
+      }
+
+      function formatArg(val) {
+        if (val === undefined) return 'undefined';
+        if (val === null) return 'null';
+        if (typeof val === 'object') {
+          try { return JSON.stringify(val); } catch (e) { return String(val); }
+        }
+        return String(val);
+      }
+
+      function executeSnippet(code) {
+        appendLog('> ' + code.split('
+')[0] + (code.indexOf('
+') !== -1 ? ' ...' : ''), 'ret');
+        var sandboxConsole = {
+          log: function () {
+            var parts = Array.prototype.slice.call(arguments).map(formatArg);
+            appendLog(parts.join(' '), 'info');
+          },
+          error: function () {
+            var parts = Array.prototype.slice.call(arguments).map(formatArg);
+            appendLog('Error: ' + parts.join(' '), 'err');
+          },
+          warn: function () {
+            var parts = Array.prototype.slice.call(arguments).map(formatArg);
+            appendLog('Warn: ' + parts.join(' '), 'info');
+          },
+          table: function (obj) {
+            appendLog(formatArg(obj), 'info');
+          }
+        };
+
+        try {
+          var fn = new Function('console', code);
+          var res = fn(sandboxConsole);
+          if (res !== undefined) {
+            appendLog('<- ' + formatArg(res), 'ret');
+          }
+        } catch (err) {
+          appendLog(err.name + ': ' + err.message, 'err');
+        }
+      }
+
+      function copyText(text, btn) {
+        function done() {
+          if (!btn) return;
+          var orig = btn.textContent;
+          btn.textContent = 'Kopiert!';
+          setTimeout(function () { btn.textContent = orig; }, 1200);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done).catch(function () {
+            fallbackCopy(text);
+            done();
+          });
+        } else {
+          fallbackCopy(text);
+          done();
+        }
+      }
+
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); } catch (e) {}
+        document.body.removeChild(ta);
+      }
+
+      // Event Delegation für alle Karten-Buttons
+      document.getElementById('cards-list').addEventListener('click', function (e) {
+        var btn = e.target.closest('button[data-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-action');
+        var id = btn.getAttribute('data-id');
+        var item = entries.find(function (x) { return x.id === id; });
+        if (!item) return;
+
+        if (action === 'copy') {
+          copyText(item.code || '', btn);
+        } else if (action === 'run') {
+          document.body.classList.remove('console-collapsed');
+          document.getElementById('btn-toggle-console').textContent = 'Einklappen';
+          executeSnippet(item.code || '');
+        } else if (action === 'edit') {
+          document.getElementById('modal-heading').textContent = 'Eintrag bearbeiten';
+          document.getElementById('entry-id').value = item.id;
+          document.getElementById('entry-cat').value = item.category;
+          document.getElementById('entry-title').value = item.title;
+          document.getElementById('entry-summary').value = item.summary;
+          document.getElementById('entry-note').value = item.note || '';
+          document.getElementById('entry-code').value = item.code || '';
+          document.getElementById('edit-overlay').classList.add('open');
+        } else if (action === 'delete') {
+          entries = entries.filter(function (x) { return x.id !== id; });
+          saveEntries();
+          renderCards();
+        }
+      });
+
+      // Suche & Filter
+      document.getElementById('search-input').addEventListener('input', renderCards);
+      document.getElementById('filter-bar').addEventListener('click', function (e) {
+        var btn = e.target.closest('.filter-btn');
+        if (!btn) return;
+        document.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        activeCat = btn.getAttribute('data-cat');
+        renderCards();
+      });
+
+      // Neuer Eintrag Modal
+      document.getElementById('btn-add').addEventListener('click', function () {
+        document.getElementById('entry-form').reset();
+        document.getElementById('entry-id').value = '';
+        document.getElementById('modal-heading').textContent = 'Neuer Eintrag';
+        document.getElementById('edit-overlay').classList.add('open');
+      });
+
+      document.getElementById('btn-cancel-edit').addEventListener('click', function () {
+        document.getElementById('edit-overlay').classList.remove('open');
+      });
+
+      document.getElementById('entry-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var id = document.getElementById('entry-id').value;
+        var obj = {
+          id: id || 'e_' + Date.now(),
+          category: document.getElementById('entry-cat').value,
+          title: document.getElementById('entry-title').value.trim(),
+          summary: document.getElementById('entry-summary').value.trim(),
+          note: document.getElementById('entry-note').value.trim(),
+          code: document.getElementById('entry-code').value
+        };
+
+        var idx = entries.findIndex(function (x) { return x.id === id; });
+        if (idx !== -1) {
+          entries[idx] = obj;
+        } else {
+          entries.unshift(obj);
+        }
+        saveEntries();
+        renderCards();
+        document.getElementById('edit-overlay').classList.remove('open');
+      });
+
+      // Backup Modal
+      document.getElementById('btn-backup').addEventListener('click', function () {
+        document.getElementById('backup-text').value = JSON.stringify(entries, null, 2);
+        document.getElementById('backup-overlay').classList.add('open');
+      });
+
+      document.getElementById('btn-close-backup').addEventListener('click', function () {
+        document.getElementById('backup-overlay').classList.remove('open');
+      });
+
+      document.getElementById('btn-copy-backup').addEventListener('click', function () {
+        copyText(document.getElementById('backup-text').value, this);
+      });
+
+      document.getElementById('btn-import-backup').addEventListener('click', function () {
+        try {
+          var data = JSON.parse(document.getElementById('backup-text').value);
+          if (!Array.isArray(data)) throw new Error('Kein gültiges Array');
+          entries = data;
+          saveEntries();
+          renderCards();
+          document.getElementById('backup-overlay').classList.remove('open');
+          appendLog('Backup erfolgreich importiert (' + entries.length + ' Einträge).', 'info');
+        } catch (err) {
+          alert('Fehler beim Import: ' + err.message);
+        }
+      });
+
+      document.getElementById('btn-reset-default').addEventListener('click', function () {
+        entries = defaultEntries.slice();
+        saveEntries();
+        renderCards();
+        document.getElementById('backup-text').value = JSON.stringify(entries, null, 2);
+      });
+
+      // Konsole Controls
+      document.getElementById('btn-clear-log').addEventListener('click', function () {
+        consoleOut.innerHTML = '';
+      });
+
+      document.getElementById('btn-toggle-console').addEventListener('click', function () {
+        var collapsed = document.body.classList.toggle('console-collapsed');
+        this.textContent = collapsed ? 'Aufklappen' : 'Einklappen';
+      });
+
+      document.getElementById('console-form').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var input = document.getElementById('console-cmd');
+        var cmd = input.value.trim();
+        if (!cmd) return;
+        input.value = '';
+        executeSnippet(cmd);
+      });
+
+      // Start
+      loadEntries();
+      renderCards();
+      appendLog('Live-Konsole bereit. Tippe bei einem Codebeispiel auf "Ausführen".', 'ret');
+    })();
+  </script>
+</body>
+</html>
