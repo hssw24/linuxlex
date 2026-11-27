@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS & LocalStorage Labor – Lernarchiv & Konsole</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #1e293b;
+      --surface-alt: #0f172a;
+      --border: #334155;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-dark: #0284c7;
+      --green: #4ade80;
+      --yellow: #facc15;
+      --red: #f87171;
+      --purple: #c084fc;
+      --code-bg: #090d16;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.55;
+      padding-bottom: 80px;
+    }
+
+    /* Header & Sticky Search */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+    }
+
+    .container {
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .header-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-eruda {
+      font-size: 0.72rem;
+      background: #1e3a8a;
+      color: #93c5fd;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    button {
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 8px 12px;
+      transition: transform 0.1s, opacity 0.15s, background 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    button:active { transform: scale(0.97); }
+
+    .btn-primary { background: var(--accent); color: #0b1120; }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+    .btn-run { background: #14532d; color: #86efac; border: 1px solid #166534; }
+    .btn-copy { background: #1e293b; color: #e2e8f0; border: 1px solid #475569; }
+    .btn-danger { background: #7f1d1d; color: #fecaca; }
+    .btn-sm { padding: 5px 9px; font-size: 0.78rem; }
+
+    /* Search & Filter */
+    .search-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .search-box {
+      position: relative;
+      flex: 1;
+    }
+
+    .search-box input {
+      width: 100%;
+      padding: 10px 36px 10px 14px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .search-box input:focus { border-color: var(--accent); }
+
+    .clear-search {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 8px;
+      font-size: 1rem;
+      display: none;
+    }
+
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .filter-pills::-webkit-scrollbar { display: none; }
+
+    .pill {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+    }
+    .pill.active {
+      background: var(--accent);
+      color: #0b1120;
+      border-color: var(--accent);
+    }
+
+    /* Live Console Drawer / Panel */
+    main {
+      padding: 16px;
+    }
+
+    .console-panel {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    .console-header {
+      background: var(--surface);
+      padding: 10px 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .console-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .console-output {
+      padding: 12px 14px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      max-height: 240px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .log-entry {
+      padding: 6px 10px;
+      border-radius: 6px;
+      background: rgba(30, 41, 59, 0.55);
+      border-left: 3px solid var(--accent);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+    .log-entry.error { border-left-color: var(--red); color: #fca5a5; background: rgba(127, 29, 29, 0.25); }
+    .log-entry.warn { border-left-color: var(--yellow); color: #fde047; }
+    .log-entry.result { border-left-color: var(--purple); color: #d8b4fe; }
+    .log-meta { font-size: 0.7rem; color: var(--muted); display: block; margin-bottom: 2px; }
+
+    .console-input-bar {
+      display: flex;
+      border-top: 1px solid var(--border);
+      background: var(--surface-alt);
+    }
+
+    .console-input-bar input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--green);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.88rem;
+      padding: 10px 12px;
+      outline: none;
+    }
+
+    /* Cards for Knowledge & Code */
+    .stats-bar {
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      transition: border-color 0.15s;
+    }
+    .card:hover { border-color: #475569; }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .card-category {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      display: inline-block;
+      margin-bottom: 6px;
+    }
+    .cat-grundlagen { background: rgba(56, 189, 248, 0.15); color: #7dd3fc; }
+    .cat-befehle { background: rgba(74, 222, 128, 0.15); color: #86efac; }
+    .cat-praxis { background: rgba(192, 132, 252, 0.15); color: #d8b4fe; }
+    .cat-speicher { background: rgba(250, 204, 21, 0.15); color: #fde047; }
+    .cat-eigene { background: rgba(244, 114, 182, 0.15); color: #f9a8d4; }
+
+    .card h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      margin-bottom: 10px;
+    }
+
+    .card-aha {
+      background: rgba(15, 23, 42, 0.7);
+      border-left: 3px solid var(--yellow);
+      padding: 8px 12px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.84rem;
+      color: #fef08a;
+      margin-bottom: 12px;
+    }
+
+    .code-wrapper {
+      background: var(--code-bg);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .code-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: #111827;
+      border-bottom: 1px solid #1f2937;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .code-lang {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: monospace;
+    }
+
+    .code-btns {
+      display: flex;
+      gap: 6px;
+    }
+
+    pre {
+      padding: 12px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      color: #e2e8f0;
+      line-height: 1.45;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .tag {
+      font-size: 0.74rem;
+      color: var(--muted);
+      background: var(--surface-alt);
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    mark {
+      background: #fde047;
+      color: #0b1120;
+      padding: 0 2px;
+      border-radius: 3px;
+    }
+
+    /* Overlay Modal */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      z-index: 100;
+      padding: 16px;
+      overflow-y: auto;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 500px;
+      margin: auto;
+    }
+
+    .modal-box h3 { margin-bottom: 14px; font-size: 1.1rem; }
+
+    .form-group { margin-bottom: 12px; }
+    .form-group label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 4px; }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface-alt);
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+    .form-group textarea {
+      font-family: ui-monospace, monospace;
+      font-size: 0.82rem;
+      min-height: 95px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    /* Toast */
+    #toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #10b981;
+      color: #052e16;
+      font-weight: 700;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 200;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="container">
+      <div class="header-top">
+        <h1>📘 JS & LocalStorage Archiv <span class="badge-eruda">Eruda-Ready</span></h1>
+        <div class="header-actions">
+          <button class="btn-secondary btn-sm" id="btn-backup">💾 Backup</button>
+          <button class="btn-primary btn-sm" id="btn-add">+ Eintrag</button>
+        </div>
+      </div>
+
+      <div class="search-row">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Suche nach Begriff, Befehl, Fehler (z. B. Promise, JSON, TTL, Quota)...">
+          <button class="clear-search" id="clear-search" title="Suche löschen">✕</button>
+        </div>
+      </div>
+
+      <div class="filter-pills" id="filter-pills">
+        <button class="pill active" data-cat="alle">Alle</button>
+        <button class="pill" data-cat="grundlagen">Begriffe & Aha-Momente</button>
+        <button class="pill" data-cat="befehle">Basis-Befehle</button>
+        <button class="pill" data-cat="praxis">Praxis & Tests</button>
+        <button class="pill" data-cat="speicher">IndexedDB & Limits</button>
+        <button class="pill" data-cat="eigene">Eigene Notizen</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- Integrierte Live-Konsole -->
+    <section class="console-panel" aria-label="Integrierte Live-Konsole">
+      <div class="console-header">
+        <span class="console-title">⚡ Live-Konsole (direkt hier testen)</span>
+        <div style="display:flex; gap:6px;">
+          <button class="btn-secondary btn-sm" id="btn-inspect-ls">📊 localStorage zeigen</button>
+          <button class="btn-secondary btn-sm" id="btn-clear-console">🧹 Leeren</button>
+        </div>
+      </div>
+      <div class="console-output" id="console-output">
+        <div class="log-entry">
+          <span class="log-meta">System bereit</span>
+          Klicke bei einem Beispiel auf <b>▶ Ausführen</b> für sofortige Ausgabe hier – oder auf <b>📋 Kopieren</b>, um den Code in eine parallele Eruda-Konsole einzufügen.
+        </div>
+      </div>
+      <div class="console-input-bar">
+        <input type="text" id="console-cmd" placeholder="Eigenen JS-Befehl eingeben, z. B. localStorage.setItem('test_1', 'Hallo')">
+        <button class="btn-run" id="btn-run-cmd" style="border-radius:0;">▶ Run</button>
+      </div>
+    </section>
+
+    <div class="stats-bar">
+      <span id="result-count">Lade Einträge...</span>
+      <span>Tipp: Test-Keys starten mit <code>test_</code></span>
+    </div>
+
+    <section class="cards-list" id="cards-list"></section>
+
+  </main>
+
+  <!-- Modal: Neuen Eintrag hinzufügen / bearbeiten -->
+  <div class="modal-backdrop" id="entry-modal">
+    <div class="modal-box">
+      <h3 id="modal-heading">Neuen Lern-Eintrag hinzufügen</h3>
+      <form id="entry-form">
+        <input type="hidden" id="entry-id">
+        <div class="form-group">
+          <label for="entry-cat">Kategorie</label>
+          <select id="entry-cat">
+            <option value="eigene">Eigene Notizen</option>
+            <option value="grundlagen">Begriffe & Aha-Momente</option>
+            <option value="befehle">Basis-Befehle</option>
+            <option value="praxis">Praxis & Tests</option>
+            <option value="speicher">IndexedDB & Limits</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="entry-title">Titel / Begriff / Befehl *</label>
+          <input type="text" id="entry-title" placeholder="z. B. sessionStorage vs. localStorage" required>
+        </div>
+        <div class="form-group">
+          <label for="entry-desc">Erklärung *</label>
+          <textarea id="entry-desc" style="font-family:inherit; min-height:70px;" placeholder="Was macht der Befehl oder was bedeutet der Begriff?" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="entry-aha">Merksatz / Aha-Moment (optional)</label>
+          <input type="text" id="entry-aha" placeholder="z. B. Gibt immer einen String zurück!">
+        </div>
+        <div class="form-group">
+          <label for="entry-code">Ausführbares Code-Beispiel (optional)</label>
+          <textarea id="entry-code" placeholder="localStorage.setItem('test_demo', '123');&#10;console.log(localStorage.getItem('test_demo'));"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="entry-tags">Suchbegriffe / Tags (kommagetrennt)</label>
+          <input type="text" id="entry-tags" placeholder="storage, test, string, anfänger">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="btn-cancel-entry">Abbrechen</button>
+          <button type="submit" class="btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Backup Export / Import -->
+  <div class="modal-backdrop" id="backup-modal">
+    <div class="modal-box">
+      <h3>💾 Wissensarchiv sichern & wiederherstellen</h3>
+      <p style="font-size:0.85rem; color:var(--muted); margin-bottom:12px;">
+        Deine eigenen Einträge werden im <code>localStorage</code> gespeichert. Hier kannst du das gesamte Archiv als JSON-Text kopieren oder einfügen.
+      </p>
+      <div class="form-group">
+        <label for="backup-json">Archiv-Daten (JSON)</label>
+        <textarea id="backup-json" style="min-height:140px;"></textarea>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:space-between;">
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-copy" id="btn-copy-backup">📋 JSON kopieren</button>
+          <button type="button" class="btn-primary" id="btn-import-backup">📥 Importieren</button>
+        </div>
+        <button type="button" class="btn-secondary" id="btn-close-backup">Schließen</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast">Kopiert!</div>
+
+  <script>
+    const ARCHIVE_KEY = 'js_localstorage_leitfaden_v1';
+
+    // Alle heute erarbeiteten Themen, Begriffe, Befehle & Beispiele
+    const DEFAULT_ENTRIES = [
+      {
+        id: 'eruda-info',
+        cat: 'grundlagen',
+        title: 'Eruda Konsole auf dem Smartphone nutzen',
+        desc: 'Da Chrome auf Android keine direkte Entwicklerkonsole hat, bringt Eruda eine mobile DevTools-Oberfläche (Console, Elements, Network, Resources) direkt auf das Handy-Display – perfekt, um localStorage parallel zu testen.',
+        aha: 'Im Reiter "Resources -> Local Storage" von Eruda siehst du alle gespeicherten Schlüssel und Werte live, ohne Befehle tippen zu müssen.',
+        code: `// Prüfen, ob Eruda auf der aktuellen Seite aktiv ist:
+console.log('Eruda aktiv:', typeof window.eruda !== 'undefined');
+console.log('Aktuelle Domain:', location.origin);`,
+        tags: ['eruda', 'android', 'chrome', 'konsole', 'mobile', 'devtools'],
+        builtin: true
+      },
+      {
+        id: 'crud-basic',
+        cat: 'befehle',
+        title: 'Basis-Befehle: Speichern, Lesen, Löschen (setItem, getItem)',
+        desc: 'Der localStorage speichert Daten dauerhaft (auch nach Neuladen oder Browser-Neustart) als Schlüssel-Wert-Paare für die aktuell geöffnete Domain.',
+        aha: 'Nutze für eigene Tests immer ein Präfix wie "test_", damit du keine echten Website-Daten überschreibst.',
+        code: `// 1. Wert speichern
+localStorage.setItem('test_name', 'Max');
+
+// 2. Wert auslesen
+console.log('Gelesen:', localStorage.getItem('test_name'));
+
+// 3. Einzelnen Eintrag wieder löschen
+localStorage.removeItem('test_name');
+console.log('Nach Löschen:', localStorage.getItem('test_name'));`,
+        tags: ['setItem', 'getItem', 'removeItem', 'clear', 'speichern', 'lesen', 'löschen'],
+        builtin: true
+      },
+      {
+        id: 'string-trap',
+        cat: 'grundlagen',
+        title: 'Die "Alles-ist-ein-String"-Falle (Datentypen)',
+        desc: 'localStorage kann ausschließlich reinen Text (Strings) speichern. Zahlen (25) und Wahrheitswerte (false) werden beim Speichern automatisch in Text ("25", "false") umgewandelt.',
+        aha: 'Der Text "false" ist kein leerer String und gilt in einer if-Abfrage als WAHR (truthy)! Zahlen werden beim Addieren mit + aneinandergehängt ("25" + 5 = "255").',
+        code: `localStorage.setItem('test_alter', 25);
+localStorage.setItem('test_aktiv', false);
+
+const alter = localStorage.getItem('test_alter');
+console.log('Datentyp:', typeof alter); // "string"
+console.log('Falsch gerechnet:', alter + 5); // "255"
+console.log('Richtig gerechnet:', Number(alter) + 5); // 30
+
+// Aufräumen:
+localStorage.removeItem('test_alter');
+localStorage.removeItem('test_aktiv');`,
+        tags: ['string', 'typeof', 'number', 'boolean', 'false', 'falle', 'datentyp'],
+        builtin: true
+      },
+      {
+        id: 'json-objects',
+        cat: 'befehle',
+        title: 'Objekte & Listen speichern (JSON.stringify & JSON.parse)',
+        desc: 'Damit komplexe Daten wie Einstellungen oder Arrays nicht als nutzloses "[object Object]" gespeichert werden, wandelt man sie vor dem Speichern in einen JSON-Text um und beim Lesen wieder zurück.',
+        aha: 'JSON.stringify() = Objekt zu Text machen. JSON.parse() = Text wieder zu echtem JavaScript-Objekt machen.',
+        code: `const config = { darkmode: true, schriftgroesse: 16, tags: ['js', 'web'] };
+
+// Als JSON-Text speichern:
+localStorage.setItem('test_config', JSON.stringify(config));
+
+// Auslesen und zurückverwandeln:
+const geladen = JSON.parse(localStorage.getItem('test_config'));
+console.log('Darkmode aktiv?:', geladen.darkmode);
+console.log('Zweiter Tag:', geladen.tags[1]);
+
+localStorage.removeItem('test_config');`,
+        tags: ['json', 'stringify', 'parse', 'objekt', 'array', 'liste'],
+        builtin: true
+      },
+      {
+        id: 'inspect-overview',
+        cat: 'befehle',
+        title: 'Überblick über alle Einträge verschaffen',
+        desc: 'Mit Object.keys() und localStorage.length findest du heraus, welche und wie viele Daten eine Webseite bereits im Speicher abgelegt hat.',
+        aha: 'In der Eruda- oder Desktop-Konsole zeigt console.table(localStorage) alle Einträge übersichtlich als Tabelle an.',
+        code: `localStorage.setItem('test_demo1', 'Wert A');
+localStorage.setItem('test_demo2', 'Wert B');
+
+console.log('Anzahl Einträge gesamt:', localStorage.length);
+console.log('Alle Schlüssel:', Object.keys(localStorage));
+
+// Nur eigene Test-Einträge anzeigen:
+const meineTests = Object.keys(localStorage).filter(k => k.startsWith('test_'));
+console.log('Meine Test-Keys:', meineTests);
+
+meineTests.forEach(k => localStorage.removeItem(k));`,
+        tags: ['keys', 'length', 'table', 'übersicht', 'auflisten', 'filter'],
+        builtin: true
+      },
+      {
+        id: 'console-return-values',
+        cat: 'grundlagen',
+        title: 'Rückgabewerte der Konsole verstehen (undefined, Timer-ID, Promise)',
+        desc: 'Die Konsole druckt nach jedem Befehl automatisch dessen direkten Rückgabewert aus. Das führt bei Anfängern oft zu Verwirrung, ist aber völlig normal.',
+        aha: '• "undefined": Befehl hat keinen Rückgabewert (z. B. setItem).
+• Zahl wie "295": Eindeutige ID eines gestarteten Timers (setTimeout).
+• "Promise {}": Versprechen auf ein Ergebnis, das erst gleich eintrifft.',
+        code: `// setTimeout gibt sofort eine laufende Timer-Nummer zurück:
+const timerId = setTimeout(() => {
+  console.log('Timer fertig abgelaufen!');
+}, 1000);
+
+console.log('Rückgabewert von setTimeout (Timer-ID):', timerId);`,
+        tags: ['undefined', 'promise', 'timer', '295', 'rückgabewert', 'setTimeout', 'asynchron'],
+        builtin: true
+      },
+      {
+        id: 'ttl-expiry',
+        cat: 'praxis',
+        title: 'Ablaufdatum (TTL – Time To Live) selbst bauen',
+        desc: 'localStorage hat kein eingebautes Verfallsdatum. Man speichert daher ein Objekt mit dem eigentlichen Wert plus einem Ablauf-Zeitstempel (Date.now() + Sekunden * 1000).',
+        aha: 'Beim Auslesen prüft man, ob Date.now() > daten.ablauf ist. Wenn ja, wird der Eintrag gelöscht und null zurückgegeben.',
+        code: `function setMitAblauf(key, wert, sekunden) {
+  const daten = { wert, ablauf: Date.now() + sekunden * 1000 };
+  localStorage.setItem(key, JSON.stringify(daten));
+}
+
+function getMitAblauf(key) {
+  const roh = localStorage.getItem(key);
+  if (!roh) return null;
+  const daten = JSON.parse(roh);
+  if (Date.now() > daten.ablauf) {
+    localStorage.removeItem(key);
+    return null;
+  }
+  return daten.wert;
+}
+
+setMitAblauf('test_token', 'Geheim123', 3);
+console.log('Sofort:', getMitAblauf('test_token'));
+setTimeout(() => console.log('Nach 3.5s:', getMitAblauf('test_token')), 3500);`,
+        tags: ['ttl', 'ablaufdatum', 'zeitstempel', 'date', 'token', 'löschen'],
+        builtin: true
+      },
+      {
+        id: 'storage-usage-quota',
+        cat: 'speicher',
+        title: 'Speicherverbrauch & Browser-Limit prüfen (QuotaExceededError)',
+        desc: 'Der localStorage ist meist auf ca. 5 MB begrenzt. Wird mehr geschrieben, wirft der Browser einen "QuotaExceededError", den man mit try/catch sauber abfangen muss.',
+        aha: 'Mit navigator.storage.estimate() siehst du das gesamte Speicherkontingent (quota) der Domain (oft mehrere GB) und die Belegung durch IndexedDB/Cache (usageDetails).',
+        code: `// Aktuellen localStorage-Verbrauch in KB berechnen:
+const bytes = new Blob(Object.values(localStorage)).size;
+console.log('localStorage Verbrauch:', (bytes / 1024).toFixed(2), 'KB');
+
+// Gesamtkontingent des Browsers abfragen (liefert ein Promise):
+navigator.storage.estimate().then(e => {
+  console.log('Gesamtlimit (GB):', (e.quota / 1024 / 1024 / 1024).toFixed(2));
+  console.log('Details:', JSON.stringify(e.usageDetails));
+});`,
+        tags: ['limit', 'quota', '5mb', 'verbrauch', 'estimate', 'usageDetails', 'fehler'],
+        builtin: true
+      },
+      {
+        id: 'session-vs-local',
+        cat: 'speicher',
+        title: 'sessionStorage vs. localStorage vs. IndexedDB',
+        desc: '• localStorage: ca. 5 MB, dauerhaft gespeichert.
+• sessionStorage: ca. 5 MB, wird beim Schließen des Browser-Tabs gelöscht.
+• IndexedDB: Asynchrone Datenbank für riesige Datenmengen (oft mehrere GB).',
+        aha: 'sessionStorage nutzt exakt dieselben Befehle (setItem, getItem, removeItem) wie localStorage.',
+        code: `localStorage.setItem('test_dauerhaft', 'Überlebt Tab-Schließen');
+sessionStorage.setItem('test_fluechtig', 'Nur für diesen Tab');
+
+console.log('Local:', localStorage.getItem('test_dauerhaft'));
+console.log('Session:', sessionStorage.getItem('test_fluechtig'));
+
+localStorage.removeItem('test_dauerhaft');
+sessionStorage.removeItem('test_fluechtig');`,
+        tags: ['sessionStorage', 'indexedDB', 'vergleich', 'unterschied', 'tab'],
+        builtin: true
+      },
+      {
+        id: 'storage-event',
+        cat: 'praxis',
+        title: 'Live-Kommunikation zwischen zwei Tabs (storage-Event)',
+        desc: 'Wenn dieselbe Website in zwei Tabs geöffnet ist, informiert das "storage"-Event auf window automatisch den jeweils anderen Tab über Änderungen im localStorage.',
+        aha: 'Wichtig: Das Event feuert NUR in den anderen offenen Tabs derselben Domain – niemals in dem Tab, der die Änderung selbst ausgelöst hat.',
+        code: `// Diesen Listener in Tab 1 starten, dann in Tab 2 einen Wert ändern:
+window.addEventListener('storage', (e) => {
+  console.log('Anderer Tab meldet:', e.key, '->', e.newValue);
+});
+console.log('Storage-Listener für andere Tabs ist aktiv!');`,
+        tags: ['event', 'tabs', 'kommunikation', 'addEventListener', 'live'],
+        builtin: true
+      }
+    ];
+
+    let entries = loadEntries();
+    let activeCategory = 'alle';
+    let searchQuery = '';
+
+    const listEl = document.getElementById('cards-list');
+    const searchInput = document.getElementById('search-input');
+    const clearSearchBtn = document.getElementById('clear-search');
+    const resultCountEl = document.getElementById('result-count');
+    const consoleOutput = document.getElementById('console-output');
+    const consoleCmd = document.getElementById('console-cmd');
+
+    function loadEntries() {
+      try {
+        const saved = localStorage.getItem(ARCHIVE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+      return JSON.parse(JSON.stringify(DEFAULT_ENTRIES));
+    }
+
+    function saveEntries() {
+      try {
+        localStorage.setItem(ARCHIVE_KEY, JSON.stringify(entries));
+      } catch (e) {
+        logToConsole('Fehler beim Speichern im localStorage: ' + e.message, 'error');
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2000);
+    }
+
+    // Live-Konsole Logging
+    function logToConsole(text, type = 'info') {
+      const div = document.createElement('div');
+      div.className = 'log-entry' + (type === 'error' ? ' error' : type === 'warn' ? ' warn' : type === 'result' ? ' result' : '');
+      const time = new Date().toLocaleTimeString('de-DE');
+      div.innerHTML = `<span class="log-meta">${time} · ${type.toUpperCase()}</span>${escapeHtml(text)}`;
+      consoleOutput.appendChild(div);
+      consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    }
+
+    function formatArgs(args) {
+      return Array.from(args).map(a => {
+        if (typeof a === 'object' && a !== null) {
+          try { return JSON.stringify(a); } catch (e) { return String(a); }
+        }
+        return String(a);
+      }).join(' ');
+    }
+
+    // Code sicher mit gekaperter console.log Ausgabe ausführen
+    function executeCode(code) {
+      if (!code || !code.trim()) return;
+      logToConsole('▶ ' + code.split('
+')[0] + (code.includes('
+') ? ' ...' : ''), 'info');
+
+      const origLog = console.log;
+      const origWarn = console.warn;
+      const origErr = console.error;
+
+      console.log = (...args) => { origLog(...args); logToConsole(formatArgs(args), 'result'); };
+      console.warn = (...args) => { origWarn(...args); logToConsole(formatArgs(args), 'warn'); };
+      console.error = (...args) => { origErr(...args); logToConsole(formatArgs(args), 'error'); };
+
+      try {
+        const res = (0, eval)(code);
+        if (res !== undefined) {
+          if (res instanceof Promise) {
+            logToConsole('Rückgabe: Promise {} (wartet auf Ergebnis...)', 'info');
+          } else {
+            logToConsole('Rückgabe: ' + formatArgs([res]), 'result');
+          }
+        }
+      } catch (err) {
+        logToConsole(err.name + ': ' + err.message, 'error');
+      } finally {
+        // Kurze Verzögerung für asynchrone Logs (z.B. Promise.then), bevor console wiederhergestellt wird
+        setTimeout(() => {
+          console.log = origLog;
+          console.warn = origWarn;
+          console.error = origErr;
+        }, 4000);
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function highlightText(text, query) {
+      const safe = escapeHtml(text);
+      if (!query) return safe;
+      const escapedQuery = query.replace(/[.*+?^${}()|[\]\]/g, '\$&');
+      const regex = new RegExp(`(${escapedQuery})`, 'gi');
+      return safe.replace(regex, '<mark>$1</mark>');
+    }
+
+    function getCatLabel(cat) {
+      const map = {
+        grundlagen: 'Begriff & Aha-Moment',
+        befehle: 'Basis-Befehl',
+        praxis: 'Praxis & Test',
+        speicher: 'IndexedDB & Limits',
+        eigene: 'Eigene Notiz'
+      };
+      return map[cat] || cat;
+    }
+
+    function renderEntries() {
+      const q = searchQuery.trim().toLowerCase();
+      const filtered = entries.filter(item => {
+        const matchesCat = activeCategory === 'alle' || item.cat === activeCategory;
+        if (!matchesCat) return false;
+        if (!q) return true;
+        const haystack = [
+          item.title,
+          item.desc,
+          item.aha || '',
+          item.code || '',
+          ...(item.tags || [])
+        ].join(' ').toLowerCase();
+        return haystack.includes(q);
+      });
+
+      resultCountEl.textContent = `${filtered.length} von ${entries.length} Einträgen angezeigt`;
+      listEl.innerHTML = '';
+
+      if (filtered.length === 0) {
+        listEl.innerHTML = `<div class="card" style="text-align:center; color:var(--muted);">Keine passenden Einträge gefunden. Probiere einen anderen Suchbegriff oder füge einen neuen Eintrag hinzu.</div>`;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'card';
+
+        const tagsHtml = (item.tags || []).map(t => `<span class="tag">#${highlightText(t, q)}</span>`).join('');
+        const ahaHtml = item.aha ? `<div class="card-aha">💡 <b>Aha-Moment:</b> ${highlightText(item.aha, q)}</div>` : '';
+        const codeHtml = item.code ? `
+          <div class="code-wrapper">
+            <div class="code-toolbar">
+              <span class="code-lang">JavaScript</span>
+              <div class="code-btns">
+                <button type="button" class="btn-copy btn-sm" data-copy="${item.id}">📋 Kopieren</button>
+                <button type="button" class="btn-run btn-sm" data-run="${item.id}">▶ Ausführen</button>
+              </div>
+            </div>
+            <pre><code>${highlightText(item.code, q)}</code></pre>
+          </div>
+        ` : '';
+
+        const actionBtns = !item.builtin ? `
+          <div style="display:flex; gap:6px;">
+            <button type="button" class="btn-secondary btn-sm" data-edit="${item.id}">✏️</button>
+            <button type="button" class="btn-danger btn-sm" data-del="${item.id}">🗑️</button>
+          </div>
+        ` : '';
+
+        card.innerHTML = `
+          <div class="card-top">
+            <div>
+              <span class="card-category cat-${item.cat}">${getCatLabel(item.cat)}</span>
+              <h2>${highlightText(item.title, q)}</h2>
+            </div>
+            ${actionBtns}
+          </div>
+          <p class="card-desc" style="white-space:pre-line;">${highlightText(item.desc, q)}</p>
+          ${ahaHtml}
+          ${codeHtml}
+          <div class="tags">${tagsHtml}</div>
+        `;
+
+        listEl.appendChild(card);
+      });
+    }
+
+    // Event Delegation für Karten-Buttons
+    listEl.addEventListener('click', (e) => {
+      const copyBtn = e.target.closest('[data-copy]');
+      if (copyBtn) {
+        const item = entries.find(x => x.id === copyBtn.dataset.copy);
+        if (item && item.code) {
+          navigator.clipboard.writeText(item.code).then(() => {
+            showToast('Code für Eruda kopiert!');
+          }).catch(() => {
+            showToast('Kopieren fehlgeschlagen');
+          });
+        }
+        return;
+      }
+
+      const runBtn = e.target.closest('[data-run]');
+      if (runBtn) {
+        const item = entries.find(x => x.id === runBtn.dataset.run);
+        if (item && item.code) {
+          executeCode(item.code);
+          consoleOutput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        return;
+      }
+
+      const editBtn = e.target.closest('[data-edit]');
+      if (editBtn) {
+        openEntryModal(editBtn.dataset.edit);
+        return;
+      }
+
+      const delBtn = e.target.closest('[data-del]');
+      if (delBtn) {
+        entries = entries.filter(x => x.id !== delBtn.dataset.del);
+        saveEntries();
+        renderEntries();
+        showToast('Eintrag gelöscht');
+      }
+    });
+
+    // Suche & Filter
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value;
+      clearSearchBtn.style.display = searchQuery ? 'block' : 'none';
+      renderEntries();
+    });
+
+    clearSearchBtn.addEventListener('click', () => {
+      searchQuery = '';
+      searchInput.value = '';
+      clearSearchBtn.style.display = 'none';
+      renderEntries();
+    });
+
+    document.getElementById('filter-pills').addEventListener('click', (e) => {
+      const pill = e.target.closest('.pill');
+      if (!pill) return;
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      pill.classList.add('active');
+      activeCategory = pill.dataset.cat;
+      renderEntries();
+    });
+
+    // Live-Konsole Controls
+    document.getElementById('btn-run-cmd').addEventListener('click', () => {
+      const cmd = consoleCmd.value;
+      if (!cmd.trim()) return;
+      executeCode(cmd);
+      consoleCmd.value = '';
+    });
+
+    consoleCmd.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-run-cmd').click();
+      }
+    });
+
+    document.getElementById('btn-clear-console').addEventListener('click', () => {
+      consoleOutput.innerHTML = '';
+      logToConsole('Konsole geleert.', 'info');
+    });
+
+    document.getElementById('btn-inspect-ls').addEventListener('click', () => {
+      const keys = Object.keys(localStorage);
+      if (keys.length === 0) {
+        logToConsole('localStorage ist aktuell komplett leer.', 'info');
+        return;
+      }
+      const snapshot = {};
+      keys.forEach(k => {
+        const val = localStorage.getItem(k);
+        snapshot[k] = val.length > 60 ? val.slice(0, 60) + '... (' + val.length + ' Zeichen)' : val;
+      });
+      logToConsole(`localStorage (${keys.length} Einträge):
+` + JSON.stringify(snapshot, null, 2), 'result');
+    });
+
+    // Modal: Eintrag hinzufügen / bearbeiten
+    const entryModal = document.getElementById('entry-modal');
+    const entryForm = document.getElementById('entry-form');
+
+    function openEntryModal(id = null) {
+      entryForm.reset();
+      if (id) {
+        const item = entries.find(x => x.id === id);
+        if (!item) return;
+        document.getElementById('modal-heading').textContent = 'Eintrag bearbeiten';
+        document.getElementById('entry-id').value = item.id;
+        document.getElementById('entry-cat').value = item.cat;
+        document.getElementById('entry-title').value = item.title;
+        document.getElementById('entry-desc').value = item.desc;
+        document.getElementById('entry-aha').value = item.aha || '';
+        document.getElementById('entry-code').value = item.code || '';
+        document.getElementById('entry-tags').value = (item.tags || []).join(', ');
+      } else {
+        document.getElementById('modal-heading').textContent = 'Neuen Lern-Eintrag hinzufügen';
+        document.getElementById('entry-id').value = '';
+      }
+      entryModal.classList.add('open');
+    }
+
+    document.getElementById('btn-add').addEventListener('click', () => openEntryModal());
+    document.getElementById('btn-cancel-entry').addEventListener('click', () => entryModal.classList.remove('open'));
+
+    entryForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const id = document.getElementById('entry-id').value;
+      const rawTags = document.getElementById('entry-tags').value;
+      const tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+
+      const newObj = {
+        id: id || 'custom-' + Date.now(),
+        cat: document.getElementById('entry-cat').value,
+        title: document.getElementById('entry-title').value.trim(),
+        desc: document.getElementById('entry-desc').value.trim(),
+        aha: document.getElementById('entry-aha').value.trim(),
+        code: document.getElementById('entry-code').value,
+        tags: tags.length ? tags : ['notiz'],
+        builtin: false
+      };
+
+      if (id) {
+        const idx = entries.findIndex(x => x.id === id);
+        if (idx !== -1) entries[idx] = newObj;
+      } else {
+        entries.unshift(newObj);
+      }
+
+      saveEntries();
+      renderEntries();
+      entryModal.classList.remove('open');
+      showToast('Eintrag im Archiv gespeichert!');
+    });
+
+    // Modal: Backup
+    const backupModal = document.getElementById('backup-modal');
+    const backupJson = document.getElementById('backup-json');
+
+    document.getElementById('btn-backup').addEventListener('click', () => {
+      backupJson.value = JSON.stringify(entries, null, 2);
+      backupModal.classList.add('open');
+    });
+
+    document.getElementById('btn-close-backup').addEventListener('click', () => backupModal.classList.remove('open'));
+
+    document.getElementById('btn-copy-backup').addEventListener('click', () => {
+      navigator.clipboard.writeText(backupJson.value).then(() => showToast('Backup-JSON kopiert!'));
+    });
+
+    document.getElementById('btn-import-backup').addEventListener('click', () => {
+      try {
+        const imported = JSON.parse(backupJson.value);
+        if (!Array.isArray(imported)) throw new Error('Ungültiges Format');
+        entries = imported;
+        saveEntries();
+        renderEntries();
+        backupModal.classList.remove('open');
+        showToast('Archiv erfolgreich importiert!');
+      } catch (err) {
+        alert('Fehler beim Importieren: Bitte gültiges JSON einfügen.');
+      }
+    });
+
+    // Initiales Rendering
+    renderEntries();
+  </script>
+</body>
+</html>
