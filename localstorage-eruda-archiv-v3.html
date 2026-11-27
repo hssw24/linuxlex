@@ -1,0 +1,1441 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>localStorage & Eruda Lernarchiv</title>
+  <style>
+    :root {
+      --bg: #0b1120;
+      --surface: #131c31;
+      --surface-2: #1c2842;
+      --border: #2a3958;
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --accent: #38bdf8;
+      --accent-soft: rgba(56, 189, 248, 0.14);
+      --green: #4ade80;
+      --green-soft: rgba(74, 222, 128, 0.14);
+      --amber: #fbbf24;
+      --amber-soft: rgba(251, 191, 36, 0.14);
+      --red: #f87171;
+      --red-soft: rgba(248, 113, 113, 0.14);
+      --purple: #c084fc;
+      --purple-soft: rgba(192, 132, 252, 0.14);
+      --code-bg: #070b14;
+      --console-height: 250px;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    body {
+      padding-bottom: calc(var(--console-height) + 28px);
+      transition: padding-bottom 0.2s ease;
+    }
+
+    body.console-collapsed {
+      padding-bottom: 68px;
+    }
+
+    /* Header & Sticky Search */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 30;
+      width: 100%;
+      background: rgba(11, 17, 32, 0.94);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .brand h1 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .badge-count {
+      font-size: 0.75rem;
+      background: var(--accent-soft);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      padding: 7px 11px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: transform 0.1s, opacity 0.15s, background 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #08101e;
+    }
+
+    .btn-secondary {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-eruda {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-eruda.active {
+      background: var(--purple-soft);
+      color: var(--purple);
+      border-color: var(--purple);
+    }
+
+    .btn-run {
+      background: var(--green-soft);
+      color: var(--green);
+      border: 1px solid rgba(74, 222, 128, 0.35);
+    }
+
+    .btn-copy {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .btn-danger {
+      background: var(--red-soft);
+      color: var(--red);
+      border: 1px solid rgba(248, 113, 113, 0.35);
+    }
+
+    .btn-sm {
+      padding: 5px 9px;
+      font-size: 0.78rem;
+    }
+
+    /* Search Box */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 10px;
+      width: 100%;
+    }
+
+    .search-input {
+      width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 36px 10px 36px;
+      color: var(--text);
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+      font-size: 0.9rem;
+    }
+
+    .clear-search {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      color: var(--muted);
+      padding: 4px 7px;
+      display: none;
+    }
+
+    .clear-search.visible {
+      display: inline-flex;
+    }
+
+    /* Filter Chips */
+    .filters {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 2px;
+      scrollbar-width: none;
+      width: 100%;
+    }
+
+    .filters::-webkit-scrollbar {
+      display: none;
+    }
+
+    .chip {
+      background: var(--surface);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 0.78rem;
+      flex-shrink: 0;
+    }
+
+    .chip.active {
+      background: var(--accent);
+      color: #08101e;
+      border-color: var(--accent);
+    }
+
+    /* Main Content Area - Strictly constrained width */
+    main {
+      width: 100%;
+      padding: 16px;
+    }
+
+    .cards-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+    }
+
+    .card {
+      width: 100%;
+      min-width: 0;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .card-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .cat-tag {
+      align-self: flex-start;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 2px 8px;
+      border-radius: 6px;
+      background: var(--surface-2);
+      color: var(--accent);
+    }
+
+    .cat-tag.cat-begriffe { background: var(--purple-soft); color: var(--purple); }
+    .cat-tag.cat-basis { background: var(--accent-soft); color: var(--accent); }
+    .cat-tag.cat-praxis { background: var(--green-soft); color: var(--green); }
+    .cat-tag.cat-limits { background: var(--amber-soft); color: var(--amber); }
+    .cat-tag.cat-custom { background: var(--surface-2); color: #f472b6; }
+
+    .card h2 {
+      font-size: 1.03rem;
+      font-weight: 700;
+      color: var(--text);
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .card-desc {
+      font-size: 0.9rem;
+      color: #cbd5e1;
+      white-space: pre-line;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .aha-box {
+      background: var(--amber-soft);
+      border-left: 3px solid var(--amber);
+      padding: 8px 11px;
+      border-radius: 0 8px 8px 0;
+      font-size: 0.84rem;
+      color: #fde68a;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    /* Code Block - Internal horizontal scroll only, never widens card */
+    .code-container {
+      width: 100%;
+      min-width: 0;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+
+    .code-toolbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 10px;
+      background: rgba(28, 40, 66, 0.65);
+      border-bottom: 1px solid var(--border);
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .code-lang {
+      font-size: 0.72rem;
+      color: var(--muted);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+
+    .code-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    pre {
+      width: 100%;
+      margin: 0;
+      padding: 11px 12px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.81rem;
+      line-height: 1.48;
+      color: #e2e8f0;
+      tab-size: 2;
+    }
+
+    .tags-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .tag-pill {
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      padding: 2px 7px;
+      border-radius: 6px;
+    }
+
+    mark {
+      background: rgba(251, 191, 36, 0.35);
+      color: #fef08a;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+
+    /* Fixed Bottom Live Console - Strictly locked to viewport width */
+    .console-dock {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      width: 100%;
+      max-width: 100vw;
+      z-index: 40;
+      background: #060a12;
+      border-top: 2px solid var(--accent);
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      height: var(--console-height);
+      transition: height 0.2s ease;
+      overflow: hidden;
+    }
+
+    .console-dock.collapsed {
+      height: 44px;
+    }
+
+    .console-header {
+      width: 100%;
+      height: 44px;
+      min-height: 44px;
+      padding: 0 12px;
+      background: var(--surface);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid var(--border);
+      user-select: none;
+    }
+
+    .console-title {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: var(--green);
+      cursor: pointer;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      flex-shrink: 0;
+    }
+
+    .console-controls {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .console-output {
+      flex: 1;
+      width: 100%;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.79rem;
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .log-line {
+      width: 100%;
+      padding: 4px 8px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 3px solid var(--muted);
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
+
+    .log-line.log-cmd { border-left-color: var(--accent); color: #7dd3fc; }
+    .log-line.log-info { border-left-color: var(--green); color: #e2e8f0; }
+    .log-line.log-ret { border-left-color: var(--purple); color: #d8b4fe; }
+    .log-line.log-warn { border-left-color: var(--amber); color: #fde68a; background: rgba(251, 191, 36, 0.08); }
+    .log-line.log-error { border-left-color: var(--red); color: #fca5a5; background: rgba(248, 113, 113, 0.1); }
+
+    .console-input-row {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+    }
+
+    .prompt-symbol {
+      color: var(--accent);
+      font-family: monospace;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .console-input {
+      flex: 1;
+      min-width: 0;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 6px 9px;
+      color: var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      outline: none;
+    }
+
+    /* Modals */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      background: rgba(0, 0, 0, 0.78);
+      padding: 16px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 18px;
+    }
+
+    .modal-box h3 {
+      margin-bottom: 14px;
+      font-size: 1.08rem;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.82rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 11px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 0.9rem;
+    }
+
+    .form-group textarea {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.82rem;
+      min-height: 95px;
+      resize: vertical;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-20px);
+      background: var(--accent);
+      color: #08101e;
+      font-weight: 700;
+      font-size: 0.84rem;
+      padding: 8px 16px;
+      border-radius: 999px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 80;
+      max-width: 90vw;
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 36px 16px;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toast" class="toast">Kopiert!</div>
+
+  <header>
+    <div class="container">
+      <div class="top-bar">
+        <div class="brand">
+          <h1>localStorage & Eruda</h1>
+          <span class="badge-count" id="result-count">0</span>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn-eruda" id="eruda-toggle-btn" title="Echte Eruda-Konsole ein-/ausschalten">🛠️ Eruda: Aus</button>
+          <button type="button" class="btn-secondary" id="open-backup-btn">💾 Backup</button>
+          <button type="button" class="btn-primary" id="open-add-btn">+ Eintrag</button>
+        </div>
+      </div>
+
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="search" id="search-input" class="search-input" placeholder="Suche nach Begriff, Befehl, Fehler (z. B. Quota, JSON, Promise)...">
+        <button type="button" id="clear-search" class="clear-search" title="Suche löschen">✕</button>
+      </div>
+
+      <div class="filters" id="filter-bar">
+        <button type="button" class="chip active" data-cat="alle">Alle</button>
+        <button type="button" class="chip" data-cat="begriffe">Begriffe & Aha-Momente</button>
+        <button type="button" class="chip" data-cat="basis">Basis-Befehle</button>
+        <button type="button" class="chip" data-cat="praxis">Praxis & Tests</button>
+        <button type="button" class="chip" data-cat="limits">Limits & IndexedDB</button>
+        <button type="button" class="chip" data-cat="custom">Eigene Notizen</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="container">
+      <div class="cards-list" id="cards-list"></div>
+    </div>
+  </main>
+
+  <!-- Integrierte Live-Konsole -->
+  <section class="console-dock" id="console-dock">
+    <div class="console-header">
+      <div class="console-title" id="toggle-console-btn">
+        <span class="dot"></span>
+        <span>Live-Konsole (Direkt-Test)</span>
+      </div>
+      <div class="console-controls">
+        <button type="button" class="btn-secondary btn-sm" id="inspect-ls-btn" title="Aktuellen localStorage anzeigen">📋 Storage</button>
+        <button type="button" class="btn-secondary btn-sm" id="clear-console-btn" title="Ausgabe leeren">🧹 Leeren</button>
+        <button type="button" class="btn-secondary btn-sm" id="collapse-icon-btn">▼</button>
+      </div>
+    </div>
+
+    <div class="console-output" id="console-output">
+      <div class="log-line log-info">Bereit! Tippe auf "▶ Ausführen" bei einem Beispiel oder nutze "🛠️ Eruda" oben für die volle mobile Entwicklerkonsole.</div>
+    </div>
+
+    <form class="console-input-row" id="console-form">
+      <span class="prompt-symbol">&gt;</span>
+      <input type="text" id="console-input" class="console-input" placeholder="Eigenen JS-Befehl eingeben, z. B. Object.keys(localStorage)" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button type="submit" class="btn-primary btn-sm">Run</button>
+    </form>
+  </section>
+
+  <!-- Modal: Neuer Eintrag / Bearbeiten -->
+  <div class="modal-backdrop" id="entry-modal">
+    <div class="modal-box">
+      <h3 id="entry-modal-title">Neuen Eintrag hinzufügen</h3>
+      <form id="entry-form">
+        <input type="hidden" id="entry-id">
+        <div class="form-group">
+          <label for="entry-cat">Kategorie</label>
+          <select id="entry-cat">
+            <option value="custom">Eigene Notizen</option>
+            <option value="begriffe">Begriffe & Aha-Momente</option>
+            <option value="basis">Basis-Befehle</option>
+            <option value="praxis">Praxis & Tests</option>
+            <option value="limits">Limits & IndexedDB</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="entry-title">Titel / Begriff / Befehl *</label>
+          <input type="text" id="entry-title" placeholder="z. B. sessionStorage Unterschied" required>
+        </div>
+        <div class="form-group">
+          <label for="entry-desc">Erklärung *</label>
+          <textarea id="entry-desc" style="font-family: inherit; min-height: 75px;" placeholder="Was macht der Befehl oder was bedeutet der Begriff?" required></textarea>
+        </div>
+        <div class="form-group">
+          <label for="entry-aha">Merksatz / Aha-Moment (optional)</label>
+          <input type="text" id="entry-aha" placeholder="z. B. Gibt immer einen String zurück!">
+        </div>
+        <div class="form-group">
+          <label for="entry-code">Codebeispiel (optional, direkt ausführbar & kopierbar)</label>
+          <textarea id="entry-code" placeholder="localStorage.setItem('test_demo', 'Hallo');&#10;console.log(localStorage.getItem('test_demo'));"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="entry-tags">Suchbegriffe / Tags (kommagetrennt)</label>
+          <input type="text" id="entry-tags" placeholder="storage, test, string, json">
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-secondary" id="close-entry-modal">Abbrechen</button>
+          <button type="submit" class="btn-primary">Speichern</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Backup Export / Import -->
+  <div class="modal-backdrop" id="backup-modal">
+    <div class="modal-box">
+      <h3>Wissensarchiv sichern & wiederherstellen</h3>
+      <p style="font-size: 0.85rem; color: var(--muted); margin-bottom: 12px;">
+        Deine eigenen Einträge und Änderungen werden im localStorage dieses Browsers gespeichert. Hier kannst du alles als JSON sichern.
+      </p>
+      <div class="form-group">
+        <label for="backup-text">JSON-Daten (Export / Import)</label>
+        <textarea id="backup-text" style="min-height: 130px;"></textarea>
+      </div>
+      <div class="modal-footer" style="justify-content: space-between;">
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button type="button" class="btn-secondary btn-sm" id="copy-backup-btn">📋 Kopieren</button>
+          <button type="button" class="btn-secondary btn-sm" id="download-backup-btn">⬇️ Datei</button>
+        </div>
+        <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+          <button type="button" class="btn-danger btn-sm" id="reset-default-btn">↺ Reset</button>
+          <button type="button" class="btn-primary btn-sm" id="import-backup-btn">⬆️ Importieren</button>
+          <button type="button" class="btn-secondary btn-sm" id="close-backup-modal">Schließen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const ARCHIVE_KEY = 'ls_eruda_lernarchiv_v1';
+
+      const DEFAULT_ENTRIES = [
+        {
+          id: 'def-1',
+          cat: 'begriffe',
+          title: 'Eruda-Konsole (Mobile DevTools)',
+          desc: 'Eruda ist eine leichtgewichtige Entwicklerkonsole speziell für mobile Browser (Android & iOS). Sie bringt Console (JS-Befehle & Logs), Elements, Network und Resources (localStorage & Cookies) direkt aufs Handy.',
+          aha: 'Ideal für Tests unterwegs: Mit dem Button "🛠️ Eruda" oben rechts kannst du Eruda direkt hier auf der Seite ein- und ausschalten!',
+          code: "// Eruda per Skript auf einer eigenen Seite einbinden:
+// <script src="https://cdn.jsdelivr.net/npm/eruda"></" + "script>
+// <script>eruda.init();</" + "script>
+console.log('Eruda-Info: Nutze den Schalter oben rechts für die echte Eruda-Konsole!');",
+          tags: ['eruda', 'konsole', 'android', 'ios', 'devtools', 'mobil']
+        },
+        {
+          id: 'def-2',
+          cat: 'begriffe',
+          title: 'Konsolen-Rückgaben verstehen: undefined, 295 & Promise {}',
+          desc: 'Die Konsole druckt nach jedem Befehl automatisch dessen Rückgabewert aus:
+• undefined: Befehl lief durch, gibt aber selbst keinen Wert zurück (z. B. setItem).
+• Zahl (z. B. 295): Die laufende Timer-ID von setTimeout (nützlich für clearTimeout(295)).
+• Promise {}: Ein "Versprechen" auf ein asynchrones Ergebnis, das kurz danach erscheint.',
+          aha: 'Eine Zahl wie 295 oder "Promise {}" direkt unter deinem Befehl ist kein Fehler, sondern normale Konsolen-Diagnose.',
+          code: "const timerId = setTimeout(() => {
+  console.log('Timer fertig!');
+}, 1000);
+console.log('Gestartete Timer-ID:', timerId);",
+          tags: ['undefined', 'promise', 'settimeout', 'timer', 'rückgabewert', '295']
+        },
+        {
+          id: 'def-3',
+          cat: 'begriffe',
+          title: 'Die "Alles-ist-ein-String"-Falle',
+          desc: 'Der localStorage speichert alle Werte ausschließlich als reinen Text (String). Zahlen wie 25 werden zu "25" und Wahrheitswerte wie false werden zu "false".',
+          aha: 'Aus "25" + 5 wird "255" statt 30! Und der nicht-leere Text "false" gilt in if-Abfragen als wahr (truthy).',
+          code: "localStorage.setItem('test_alter', 25);
+localStorage.setItem('test_login', false);
+
+const alter = localStorage.getItem('test_alter');
+console.log('Datentyp:', typeof alter);
+console.log('Falsch gerechnet:', alter + 5);
+console.log('Richtig gerechnet:', Number(alter) + 5);
+
+localStorage.removeItem('test_alter');
+localStorage.removeItem('test_login');",
+          tags: ['string', 'text', 'number', 'boolean', 'false', 'datentyp', 'falle']
+        },
+        {
+          id: 'def-4',
+          cat: 'basis',
+          title: 'Basis-Befehle: Schreiben, Lesen, Löschen',
+          desc: 'Die vier Grundbefehle für Schlüssel-Wert-Paare (Key-Value) im localStorage. Daten bleiben dauerhaft für diese Domain erhalten – auch nach Neuladen der Seite.',
+          aha: 'Nutze für Tests immer ein Präfix wie "test_", damit du keine echten App-Daten überschreibst.',
+          code: "localStorage.setItem('test_name', 'Max');
+console.log('Ausgelesen:', localStorage.getItem('test_name'));
+
+localStorage.removeItem('test_name');
+console.log('Nach Löschen:', localStorage.getItem('test_name'));",
+          tags: ['setitem', 'getitem', 'removeitem', 'clear', 'basis', 'speichern', 'löschen']
+        },
+        {
+          id: 'def-5',
+          cat: 'basis',
+          title: 'Objekte & Arrays speichern (JSON.stringify / JSON.parse)',
+          desc: 'Da localStorage nur Strings akzeptiert, müssen JavaScript-Objekte oder Listen vor dem Speichern mit JSON.stringify() in Text verwandelt und beim Auslesen mit JSON.parse() zurückgebaut werden.',
+          aha: 'Ohne JSON.stringify speichert localStorage nur den nutzlosen Text "[object Object]".',
+          code: "const einstellungen = { darkmode: true, schriftgroesse: 16 };
+localStorage.setItem('test_config', JSON.stringify(einstellungen));
+
+const geladen = JSON.parse(localStorage.getItem('test_config'));
+console.log('Darkmode aktiv?:', geladen.darkmode);
+console.log('Schriftgröße:', geladen.schriftgroesse);
+
+localStorage.removeItem('test_config');",
+          tags: ['json', 'stringify', 'parse', 'objekt', 'array', 'liste']
+        },
+        {
+          id: 'def-6',
+          cat: 'basis',
+          title: 'Überblick über alle Einträge verschaffen',
+          desc: 'Mit Object.keys(localStorage) listest du alle gespeicherten Schlüsselnamen auf. In großen Desktop-/Eruda-Konsolen zeigt console.table(localStorage) zusätzlich eine übersichtliche Tabelle.',
+          aha: 'Über localStorage.length siehst du sofort, wie viele Einträge insgesamt gespeichert sind.',
+          code: "console.log('Anzahl Einträge:', localStorage.length);
+console.log('Alle Schlüssel:', Object.keys(localStorage));",
+          tags: ['keys', 'table', 'length', 'übersicht', 'anzeigen', 'auflisten']
+        },
+        {
+          id: 'def-7',
+          cat: 'praxis',
+          title: 'Ablaufdatum (TTL – Time To Live) selbst bauen',
+          desc: 'Anders als Cookies hat localStorage kein eingebautes Verfallsdatum. Man speichert daher ein Objekt mit dem eigentlichen Wert und einem Zeitstempel (Date.now() + Sekunden * 1000).',
+          aha: 'Beim Auslesen wird geprüft, ob Date.now() > ablauf ist – falls ja, wird der Eintrag sofort gelöscht.',
+          code: "function setMitAblauf(key, wert, sekunden) {
+  const daten = { wert: wert, ablauf: Date.now() + (sekunden * 1000) };
+  localStorage.setItem(key, JSON.stringify(daten));
+}
+
+function getMitAblauf(key) {
+  const roh = localStorage.getItem(key);
+  if (!roh) return null;
+  const daten = JSON.parse(roh);
+  if (Date.now() > daten.ablauf) {
+    localStorage.removeItem(key);
+    console.log('Eintrag war abgelaufen und wurde gelöscht!');
+    return null;
+  }
+  return daten.wert;
+}
+
+setMitAblauf('test_token', 'Geheim123', 3);
+console.log('Sofort:', getMitAblauf('test_token'));
+setTimeout(() => console.log('Nach 4 Sek:', getMitAblauf('test_token')), 4000);",
+          tags: ['ttl', 'ablaufdatum', 'zeitstempel', 'date.now', 'token', 'löschen']
+        },
+        {
+          id: 'def-8',
+          cat: 'praxis',
+          title: 'Live-Funk zwischen zwei Tabs (storage-Event)',
+          desc: 'Wenn dieselbe Website in zwei Browser-Tabs geöffnet ist, informiert das window-Event "storage" automatisch alle ANDEREN offenen Tabs, sobald ein Wert geändert wird.',
+          aha: 'Das Event feuert bewusst NICHT im Tab, der die Änderung auslöst, sondern nur in den anderen Tabs.',
+          code: "window.addEventListener('storage', (event) => {
+  console.log('Tab-Funk -> Schlüssel:', event.key, 'Neu:', event.newValue);
+});
+console.log('Listener aktiv! Öffne diese Seite in einem 2. Tab und ändere dort localStorage.');",
+          tags: ['storage', 'event', 'tabs', 'kommunikation', 'synchron', 'addeventlistener']
+        },
+        {
+          id: 'def-9',
+          cat: 'limits',
+          title: 'Speicherverbrauch berechnen & QuotaExceededError abfangen',
+          desc: 'Browser begrenzen localStorage meist auf ca. 5 MB pro Domain. Wird das Limit überschritten, wirft der Browser einen "QuotaExceededError", der mit try / catch abgefangen werden muss.',
+          aha: 'Mit Blob lässt sich die genaue Byte-Größe aller gespeicherten Werte blitzschnell berechnen.',
+          code: "const bytes = new Blob(Object.values(localStorage)).size;
+console.log('Aktueller Verbrauch:', (bytes / 1024).toFixed(2), 'KB');
+
+try {
+  const riesenText = 'x'.repeat(6 * 1024 * 1024);
+  localStorage.setItem('test_zuGross', riesenText);
+} catch (fehler) {
+  console.error('Limit erreicht:', fehler.name);
+} finally {
+  localStorage.removeItem('test_zuGross');
+}",
+          tags: ['quota', 'quotaexceedederror', 'limit', '5mb', 'speicher', 'blob', 'try', 'catch']
+        },
+        {
+          id: 'def-10',
+          cat: 'limits',
+          title: 'Gesamtspeicher & IndexedDB prüfen (navigator.storage.estimate)',
+          desc: 'Für riesige Datenmengen (mehrere MB bis GB) nutzt man IndexedDB statt localStorage. Mit navigator.storage.estimate() zeigt der Browser das Gesamtlimit (quota) und die Details (usageDetails) an.',
+          aha: 'Auf Android Chrome liegt das Gesamtlimit oft bei 10 GB; auf iOS Safari gilt ohne Homescreen-Installation eine 7-Tage-Löschregel bei Inaktivität.',
+          code: "navigator.storage.estimate().then(e => {
+  console.log('Gesamtlimit (GB):', (e.quota / 1024 / 1024 / 1024).toFixed(2));
+  console.log('Verbrauch (KB):', (e.usage / 1024).toFixed(2));
+  console.log('Details:', JSON.stringify(e.usageDetails));
+});",
+          tags: ['indexeddb', 'estimate', 'quota', 'usagedetails', 'gigabyte', 'ios', 'safari']
+        }
+      ];
+
+      let entries = loadEntries();
+      let activeCategory = 'alle';
+      let searchQuery = '';
+
+      // DOM Elements
+      const cardsList = document.getElementById('cards-list');
+      const resultCount = document.getElementById('result-count');
+      const searchInput = document.getElementById('search-input');
+      const clearSearchBtn = document.getElementById('clear-search');
+      const filterBar = document.getElementById('filter-bar');
+      const consoleDock = document.getElementById('console-dock');
+      const consoleOutput = document.getElementById('console-output');
+      const consoleForm = document.getElementById('console-form');
+      const consoleInput = document.getElementById('console-input');
+      const collapseIconBtn = document.getElementById('collapse-icon-btn');
+      const toastEl = document.getElementById('toast');
+      const erudaToggleBtn = document.getElementById('eruda-toggle-btn');
+
+      // Eruda State & Toggle
+      let erudaLoaded = false;
+      let erudaActive = false;
+
+      function updateErudaButton() {
+        if (erudaActive) {
+          erudaToggleBtn.classList.add('active');
+          erudaToggleBtn.textContent = '🛠️ Eruda: An';
+        } else {
+          erudaToggleBtn.classList.remove('active');
+          erudaToggleBtn.textContent = '🛠️ Eruda: Aus';
+        }
+      }
+
+      erudaToggleBtn.addEventListener('click', () => {
+        if (!erudaActive) {
+          if (erudaLoaded && window.eruda) {
+            window.eruda.init();
+            window.eruda.show();
+            erudaActive = true;
+            updateErudaButton();
+            appendLog('info', 'Eruda-Konsole aktiviert (schwebendes Zahnrad-Symbol unten rechts).');
+          } else {
+            erudaToggleBtn.textContent = '⏳ Lädt...';
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/eruda';
+            script.onload = () => {
+              erudaLoaded = true;
+              if (window.eruda) {
+                window.eruda.init();
+                window.eruda.show();
+                erudaActive = true;
+                updateErudaButton();
+                appendLog('info', 'Eruda erfolgreich geladen und gestartet!');
+              }
+            };
+            script.onerror = () => {
+              updateErudaButton();
+              appendLog('error', 'Eruda konnte nicht geladen werden (Internetverbindung prüfen).');
+              showToast('Eruda-Download fehlgeschlagen');
+            };
+            document.body.appendChild(script);
+          }
+        } else {
+          if (window.eruda) {
+            window.eruda.destroy();
+          }
+          erudaActive = false;
+          updateErudaButton();
+          appendLog('info', 'Eruda-Konsole deaktiviert.');
+        }
+      });
+
+      function loadEntries() {
+        try {
+          const raw = localStorage.getItem(ARCHIVE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+          }
+        } catch (e) {}
+        return JSON.parse(JSON.stringify(DEFAULT_ENTRIES));
+      }
+
+      function saveEntries() {
+        try {
+          localStorage.setItem(ARCHIVE_KEY, JSON.stringify(entries));
+        } catch (e) {
+          appendLog('error', 'Fehler beim Speichern des Archivs: ' + e.message);
+        }
+      }
+
+      function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.classList.add('show');
+        clearTimeout(showToast._t);
+        showToast._t = setTimeout(() => toastEl.classList.remove('show'), 2000);
+      }
+
+      function escapeHtml(str) {
+        return String(str)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+
+      function highlightText(text, query) {
+        const safe = escapeHtml(text);
+        if (!query) return safe;
+        const escapedQ = query.replace(/[.*+?^${}()|[\]\]/g, '\$&');
+        const regex = new RegExp('(' + escapedQ + ')', 'gi');
+        return safe.replace(regex, '<mark>$1</mark>');
+      }
+
+      const CAT_LABELS = {
+        begriffe: 'Begriffe & Aha-Momente',
+        basis: 'Basis-Befehle',
+        praxis: 'Praxis & Tests',
+        limits: 'Limits & IndexedDB',
+        custom: 'Eigene Notiz'
+      };
+
+      function renderCards() {
+        const q = searchQuery.trim().toLowerCase();
+        const filtered = entries.filter(item => {
+          const catMatch = activeCategory === 'alle' || item.cat === activeCategory;
+          if (!catMatch) return false;
+          if (!q) return true;
+          const haystack = [
+            item.title,
+            item.desc,
+            item.aha || '',
+            item.code || '',
+            (item.tags || []).join(' ')
+          ].join(' ').toLowerCase();
+          return haystack.includes(q);
+        });
+
+        resultCount.textContent = filtered.length + ' / ' + entries.length;
+        cardsList.innerHTML = '';
+
+        if (filtered.length === 0) {
+          cardsList.innerHTML = '<div class="empty-state">Keine Einträge für <strong>"' + escapeHtml(searchQuery) + '"</strong> gefunden.</div>';
+          return;
+        }
+
+        filtered.forEach(item => {
+          const card = document.createElement('article');
+          card.className = 'card';
+
+          const catClass = 'cat-' + (item.cat || 'custom');
+          const catLabel = CAT_LABELS[item.cat] || 'Notiz';
+
+          let html = `
+            <div class="card-header">
+              <div class="card-title-wrap">
+                <span class="cat-tag ${catClass}">${escapeHtml(catLabel)}</span>
+                <h2>${highlightText(item.title, searchQuery.trim())}</h2>
+              </div>
+              <div style="display:flex; gap:5px; flex-shrink:0;">
+                <button type="button" class="btn-secondary btn-sm" data-edit="${item.id}" title="Bearbeiten">✏️</button>
+                <button type="button" class="btn-danger btn-sm" data-del="${item.id}" title="Löschen">🗑️</button>
+              </div>
+            </div>
+            <div class="card-desc">${highlightText(item.desc, searchQuery.trim())}</div>
+          `;
+
+          if (item.aha) {
+            html += `<div class="aha-box">💡 <strong>Merksatz:</strong> ${highlightText(item.aha, searchQuery.trim())}</div>`;
+          }
+
+          if (item.code && item.code.trim()) {
+            html += `
+              <div class="code-container">
+                <div class="code-toolbar">
+                  <span class="code-lang">JavaScript</span>
+                  <div class="code-actions">
+                    <button type="button" class="btn-copy btn-sm" data-copy="${item.id}">📋 Kopieren</button>
+                    <button type="button" class="btn-run btn-sm" data-run="${item.id}">▶ Ausführen</button>
+                  </div>
+                </div>
+                <pre>${highlightText(item.code, searchQuery.trim())}</pre>
+              </div>
+            `;
+          }
+
+          if (item.tags && item.tags.length) {
+            html += '<div class="tags-row">' +
+              item.tags.map(t => `<span class="tag-pill">#${highlightText(t, searchQuery.trim())}</span>`).join('') +
+              '</div>';
+          }
+
+          card.innerHTML = html;
+          cardsList.appendChild(card);
+        });
+      }
+
+      // Event Delegation for Cards
+      cardsList.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+
+        if (btn.dataset.copy) {
+          const item = entries.find(x => x.id === btn.dataset.copy);
+          if (item && item.code) copyText(item.code);
+        } else if (btn.dataset.run) {
+          const item = entries.find(x => x.id === btn.dataset.run);
+          if (item && item.code) runInLiveConsole(item.code, item.title);
+        } else if (btn.dataset.edit) {
+          openEditModal(btn.dataset.edit);
+        } else if (btn.dataset.del) {
+          const item = entries.find(x => x.id === btn.dataset.del);
+          if (item && confirm('Eintrag "' + item.title + '" wirklich löschen?')) {
+            entries = entries.filter(x => x.id !== item.id);
+            saveEntries();
+            renderCards();
+            showToast('Eintrag gelöscht');
+          }
+        }
+      });
+
+      // Clipboard with fallback for local file:// and iOS Safari
+      function copyText(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text)
+            .then(() => showToast('Code kopiert!'))
+            .catch(() => fallbackCopy(text));
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        try {
+          document.execCommand('copy');
+          showToast('Code kopiert!');
+        } catch (err) {
+          showToast('Kopieren fehlgeschlagen');
+        }
+        document.body.removeChild(ta);
+      }
+
+      // Live Console Logic
+      function formatArg(arg) {
+        if (arg === undefined) return 'undefined';
+        if (arg === null) return 'null';
+        if (typeof arg === 'string') return arg;
+        if (arg instanceof Promise) return 'Promise {}';
+        if (typeof arg === 'object') {
+          try {
+            return JSON.stringify(arg, null, 2);
+          } catch (e) {
+            return String(arg);
+          }
+        }
+        return String(arg);
+      }
+
+      function appendLog(type, text) {
+        const line = document.createElement('div');
+        line.className = 'log-line log-' + type;
+        line.textContent = text;
+        consoleOutput.appendChild(line);
+        consoleOutput.scrollTop = consoleOutput.scrollHeight;
+      }
+
+      function ensureConsoleOpen() {
+        if (consoleDock.classList.contains('collapsed')) {
+          consoleDock.classList.remove('collapsed');
+          document.body.classList.remove('console-collapsed');
+          collapseIconBtn.textContent = '▼';
+        }
+      }
+
+      function runInLiveConsole(code, label) {
+        ensureConsoleOpen();
+        appendLog('cmd', '▶ ' + (label ? '[' + label + ']
+' : '') + code);
+
+        const origLog = console.log;
+        const origWarn = console.warn;
+        const origError = console.error;
+
+        console.log = (...args) => {
+          appendLog('info', args.map(formatArg).join(' '));
+          origLog.apply(console, args);
+        };
+        console.warn = (...args) => {
+          appendLog('warn', '⚠️ ' + args.map(formatArg).join(' '));
+          origWarn.apply(console, args);
+        };
+        console.error = (...args) => {
+          appendLog('error', '❌ ' + args.map(formatArg).join(' '));
+          origError.apply(console, args);
+        };
+
+        try {
+          const result = (0, eval)(code);
+          if (result !== undefined) {
+            appendLog('ret', '← ' + formatArg(result));
+          }
+        } catch (err) {
+          appendLog('error', '❌ ' + err.name + ': ' + err.message);
+        } finally {
+          setTimeout(() => {
+            console.log = origLog;
+            console.warn = origWarn;
+            console.error = origError;
+          }, 6500);
+        }
+      }
+
+      consoleForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const cmd = consoleInput.value.trim();
+        if (!cmd) return;
+        consoleInput.value = '';
+        runInLiveConsole(cmd);
+      });
+
+      document.getElementById('clear-console-btn').addEventListener('click', () => {
+        consoleOutput.innerHTML = '';
+        appendLog('info', 'Konsole geleert.');
+      });
+
+      document.getElementById('inspect-ls-btn').addEventListener('click', () => {
+        ensureConsoleOpen();
+        const keys = Object.keys(localStorage);
+        if (keys.length === 0) {
+          appendLog('info', 'localStorage ist komplett leer (0 Einträge).');
+          return;
+        }
+        const summary = keys.map(k => {
+          const val = localStorage.getItem(k);
+          const preview = val.length > 70 ? val.slice(0, 70) + '... (' + val.length + ' Zeichen)' : val;
+          return '• ' + k + ': ' + preview;
+        }).join('
+');
+        appendLog('info', 'Aktueller localStorage (' + keys.length + ' Einträge):
+' + summary);
+      });
+
+      function toggleConsole() {
+        const collapsed = consoleDock.classList.toggle('collapsed');
+        document.body.classList.toggle('console-collapsed', collapsed);
+        collapseIconBtn.textContent = collapsed ? '▲' : '▼';
+      }
+
+      document.getElementById('toggle-console-btn').addEventListener('click', toggleConsole);
+      collapseIconBtn.addEventListener('click', toggleConsole);
+
+      // Search & Filters
+      searchInput.addEventListener('input', () => {
+        searchQuery = searchInput.value;
+        clearSearchBtn.classList.toggle('visible', searchQuery.length > 0);
+        renderCards();
+      });
+
+      clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        searchQuery = '';
+        clearSearchBtn.classList.remove('visible');
+        renderCards();
+        searchInput.focus();
+      });
+
+      filterBar.addEventListener('click', (e) => {
+        const chip = e.target.closest('.chip');
+        if (!chip) return;
+        document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        activeCategory = chip.dataset.cat;
+        renderCards();
+      });
+
+      // Add / Edit Modal
+      const entryModal = document.getElementById('entry-modal');
+      const entryForm = document.getElementById('entry-form');
+
+      document.getElementById('open-add-btn').addEventListener('click', () => {
+        entryForm.reset();
+        document.getElementById('entry-id').value = '';
+        document.getElementById('entry-cat').value = 'custom';
+        document.getElementById('entry-modal-title').textContent = 'Neuen Eintrag hinzufügen';
+        entryModal.classList.add('open');
+      });
+
+      function openEditModal(id) {
+        const item = entries.find(x => x.id === id);
+        if (!item) return;
+        document.getElementById('entry-modal-title').textContent = 'Eintrag bearbeiten';
+        document.getElementById('entry-id').value = item.id;
+        document.getElementById('entry-cat').value = item.cat || 'custom';
+        document.getElementById('entry-title').value = item.title;
+        document.getElementById('entry-desc').value = item.desc;
+        document.getElementById('entry-aha').value = item.aha || '';
+        document.getElementById('entry-code').value = item.code || '';
+        document.getElementById('entry-tags').value = (item.tags || []).join(', ');
+        entryModal.classList.add('open');
+      }
+
+      document.getElementById('close-entry-modal').addEventListener('click', () => {
+        entryModal.classList.remove('open');
+      });
+
+      entryForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const id = document.getElementById('entry-id').value;
+        const tagsRaw = document.getElementById('entry-tags').value;
+        const tags = tagsRaw.split(',').map(t => t.trim().toLowerCase()).filter(Boolean);
+
+        const data = {
+          id: id || 'custom-' + Date.now(),
+          cat: document.getElementById('entry-cat').value,
+          title: document.getElementById('entry-title').value.trim(),
+          desc: document.getElementById('entry-desc').value.trim(),
+          aha: document.getElementById('entry-aha').value.trim(),
+          code: document.getElementById('entry-code').value,
+          tags: tags
+        };
+
+        if (id) {
+          const idx = entries.findIndex(x => x.id === id);
+          if (idx !== -1) entries[idx] = data;
+        } else {
+          entries.unshift(data);
+        }
+
+        saveEntries();
+        renderCards();
+        entryModal.classList.remove('open');
+        showToast(id ? 'Änderung gespeichert!' : 'Neuer Eintrag hinzugefügt!');
+      });
+
+      // Backup Modal
+      const backupModal = document.getElementById('backup-modal');
+      const backupText = document.getElementById('backup-text');
+
+      document.getElementById('open-backup-btn').addEventListener('click', () => {
+        backupText.value = JSON.stringify(entries, null, 2);
+        backupModal.classList.add('open');
+      });
+
+      document.getElementById('close-backup-modal').addEventListener('click', () => {
+        backupModal.classList.remove('open');
+      });
+
+      document.getElementById('copy-backup-btn').addEventListener('click', () => {
+        copyText(backupText.value);
+      });
+
+      document.getElementById('download-backup-btn').addEventListener('click', () => {
+        const blob = new Blob([backupText.value], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'localstorage-eruda-archiv.json';
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      document.getElementById('import-backup-btn').addEventListener('click', () => {
+        try {
+          const parsed = JSON.parse(backupText.value);
+          if (!Array.isArray(parsed)) throw new Error('Ungültiges Format (Array erwartet)');
+          entries = parsed;
+          saveEntries();
+          renderCards();
+          backupModal.classList.remove('open');
+          showToast('Archiv erfolgreich importiert!');
+        } catch (err) {
+          alert('Import-Fehler: ' + err.message);
+        }
+      });
+
+      document.getElementById('reset-default-btn').addEventListener('click', () => {
+        if (confirm('Alle eigenen Änderungen verwerfen und Standard-Archiv wiederherstellen?')) {
+          entries = JSON.parse(JSON.stringify(DEFAULT_ENTRIES));
+          saveEntries();
+          renderCards();
+          backupText.value = JSON.stringify(entries, null, 2);
+          showToast('Standard-Archiv wiederhergestellt');
+        }
+      });
+
+      // Initial render
+      renderCards();
+    })();
+  </script>
+</body>
+</html>
